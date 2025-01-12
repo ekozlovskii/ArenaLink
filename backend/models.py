@@ -12,10 +12,8 @@ class User(db.Model):
     role = db.Column(db.String(50), nullable=False, default='user')  # 'user', 'organizer', 'admin'
     date_create = db.Column(db.DateTime, default=datetime.utcnow)
     date_update = db.Column(db.DateTime, onupdate=datetime.utcnow)
-
-    # Для организаторов добавим два дополнительных поля
-    contact_info = db.Column(db.String(200))  # Текст для связи с организатором
-    file = db.Column(db.String(200))  # Путь к файлу, загруженному организатором
+    contact_info = db.Column(db.String(200))
+    file = db.Column(db.String(200))
 
     def __repr__(self):
         return f"<User {self.name}, Role {self.role}>"
