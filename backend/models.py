@@ -1,5 +1,9 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from sqlalchemy.orm import relationship
+
+
+
 
 db = SQLAlchemy()
 
@@ -81,12 +85,13 @@ class UserHistory(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     field_changed = db.Column(db.String(100))
     old_value = db.Column(db.Text)
-    new_value = db.Column(db.Text)
+    new_value = db.Text
     changed_by = db.Column(db.Integer, db.ForeignKey('user.id'))
     date_create = db.Column(db.DateTime, default=datetime.utcnow)
 
-    user = db.relationship('User', backref=db.backref('history', lazy=True))
-    changed_by_user = db.relationship('User', backref=db.backref('changes_made', lazy=True))
+    user = db.relationship('User', foreign_keys=[user_id], backref=db.backref('history', lazy=True))
+    changed_by_user = db.relationship('User', foreign_keys=[changed_by], backref=db.backref('changes_made', lazy=True))
+
 
 # История билетов (Ticket_History)
 class TicketHistory(db.Model):
@@ -100,6 +105,7 @@ class TicketHistory(db.Model):
     ticket = db.relationship('Ticket', backref=db.backref('history', lazy=True))
     previous_owner_user = db.relationship('User', foreign_keys=[previous_owner])
     new_owner_user = db.relationship('User', foreign_keys=[new_owner])
+
 
 # Таблица изображений (Images)
 class Image(db.Model):
