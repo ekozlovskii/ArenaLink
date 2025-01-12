@@ -3,12 +3,109 @@ from datetime import datetime
 
 db = SQLAlchemy()
 
-
+# Таблица пользователей (User)
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
-    role = db.Column(db.String(50), nullable=False, default='user')
+    role = db.Column(db.String(50), nullable=False, default='user')  # 'user', 'organizer', 'admin'
     date_create = db.Column(db.DateTime, default=datetime.utcnow)
     date_update = db.Column(db.DateTime, onupdate=datetime.utcnow)
+
+    # Для организаторов добавим два дополнительных поля
+    contact_info = db.Column(db.String(200))  # Текст для связи с организатором
+    file = db.Column(db.String(200))  # Путь к файлу, загруженному организатором
+
+    def __repr__(self):
+        return f"<User {self.name}, Role {self.role}>"
+
+# Таблица уведомлений (Notifications)
+class Notification(db.Model):
+    notification_id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    message = db.Column(db.Text)
+    delivery_method = db.Column(db.Enum('email', 'telegram', 'vk', name='delivery_method_enum'))
+    status = db.Column(db.Enum('sent', 'failed', 'pending', name='status_enum'))
+    date_sent = db.Column(db.DateTime)
+    date_create = db.Column(db.DateTime, default=datetime.utcnow)
+    date_update = db.Column(db.DateTime, onupdate=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('notifications', lazy=True))
+
+# Таблица матчей (Matches)
+class Match(db.Model):
+    match_id = db.Column(db.Integer, primary_key=True)
+    team_home = db.Column(db.String(100))
+    team_away = db.Column(db.String(100))
+    date_time = db.Column(db.DateTime)
+    location = db.Column(db.String(200))
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    date_create = db.Column(db.DateTime, default=datetime.utcnow)
+    date_update = db.Column(db.DateTime, onupdate=datetime.utcnow)
+
+    created_by_user = db.relationship('User', backref=db.backref('matches', lazy=True))
+
+# Таблица билетов (Tickets)
+class Ticket(db.Model):
+    ticket_id = db.Column(db.Integer, primary_key=True)
+    match_id = db.Column(db.Integer, db.ForeignKey('match.match_id'))
+    sector = db.Column(db.String(100))
+    row = db.Column(db.Integer)
+    seat = db.Column(db.Integer)
+    price = db.Column(db.Numeric)
+    current_owner = db.Column(db.Integer, db.ForeignKey('user.id'))
+    status = db.Column(db.Enum('available', 'sold', 'reserved', name='ticket_status_enum'))
+    date_create = db.Column(db.DateTime, default=datetime.utcnow)
+    date_update = db.Column(db.DateTime, onupdate=datetime.utcnow)
+
+    match = db.relationship('Match', backref=db.backref('tickets', lazy=True))
+    owner = db.relationship('User', backref=db.backref('owned_tickets', lazy=True))
+
+# Таблица заказов (Orders)
+class Order(db.Model):
+    order_id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    ticket_id = db.Column(db.Integer, db.ForeignKey('ticket.ticket_id'))
+    status = db.Column(db.Enum('paid', 'cancelled', name='order_status_enum'))
+    date_create = db.Column(db.DateTime, default=datetime.utcnow)
+    date_update = db.Column(db.DateTime, onupdate=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('orders', lazy=True))
+    ticket = db.relationship('Ticket', backref=db.backref('orders', lazy=True))
+
+# История изменений пользователя (User_History)
+class UserHistory(db.Model):
+    user_history_id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    field_changed = db.Column(db.String(100))
+    old_value = db.Column(db.Text)
+    new_value = db.Column(db.Text)
+    changed_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    date_create = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('history', lazy=True))
+    changed_by_user = db.relationship('User', backref=db.backref('changes_made', lazy=True))
+
+# История билетов (Ticket_History)
+class TicketHistory(db.Model):
+    ticket_history_id = db.Column(db.Integer, primary_key=True)
+    ticket_id = db.Column(db.Integer, db.ForeignKey('ticket.ticket_id'))
+    previous_owner = db.Column(db.Integer, db.ForeignKey('user.id'))
+    new_owner = db.Column(db.Integer, db.ForeignKey('user.id'))
+    status = db.Column(db.Enum('available', 'sold', 'returned', name='ticket_status_enum'))
+    date_create = db.Column(db.DateTime, default=datetime.utcnow)
+
+    ticket = db.relationship('Ticket', backref=db.backref('history', lazy=True))
+    previous_owner_user = db.relationship('User', foreign_keys=[previous_owner])
+    new_owner_user = db.relationship('User', foreign_keys=[new_owner])
+
+# Таблица изображений (Images)
+class Image(db.Model):
+    image_id = db.Column(db.Integer, primary_key=True)
+    entity_type = db.Column(db.Enum('match', 'user', name='entity_type_enum'))
+    entity_id = db.Column(db.Integer)
+    url = db.Column(db.Text)
+    date_create = db.Column(db.DateTime, default=datetime.utcnow)
+    date_update = db.Column(db.DateTime, onupdate=datetime.utcnow)
+

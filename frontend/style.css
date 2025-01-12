@@ -1,0 +1,426 @@
+/* Общий стиль для страницы */
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f9;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+
+/* Контейнер */
+.container {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  width: 600px; /* Ширина */
+  height: 400px; /* Высота */
+}
+
+/* Логотип */
+.logo img {
+  width: 150px;
+  height: auto;
+  margin-bottom: 20px;
+}
+
+/* Заголовок */
+h1 {
+  font-size: 28px;
+  margin-bottom: 30px;
+}
+
+/* Кнопки */
+.buttons {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 40px;
+  gap: 20px;
+}
+
+/* Контейнер для кнопки Back */
+.back-container {
+  display: flex;          /* Используем flexbox для управления положением */
+  justify-content: flex-start; /* Расположить кнопку слева */
+  margin-top: 20px;       /* Отступ сверху от других кнопок */
+}
+
+/* Кнопка Back */
+.back-button {
+  width: 100px;           /* Уменьшенная ширина кнопки */
+  padding: 10px;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  font-size: 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.back-button:hover {
+  background-color: #5a6268;
+}
+
+
+
+.role-button {
+  background-color: #c4e538;
+  border: none;
+  border-radius: 5px;
+  padding: 20px 30px;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.role-button:hover {
+  background-color: #a3cb38;
+}
+
+/* Специфичные стили для страницы организатора */
+.organizer-page {
+  height: auto; /* Автоматическая высота для формы */
+  text-align: left; /* Выровнять текст по левому краю */
+}
+
+/* Поле логина с выпадающим списком */
+.dropdown-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.dropdown-group input {
+  flex: 1; /* Поле ввода занимает всё доступное пространство */
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 4px 0 0 4px; /* Скругление слева */
+}
+
+.dropdown-group select {
+  width: 100px; /* Ширина выпадающего списка */
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-left: none; /* Убираем левую границу */
+  border-radius: 0 4px 4px 0; /* Скругление справа */
+  background-color: #fff;
+  cursor: pointer;
+}
+
+/* Поля ввода */
+.organizer-page form label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.organizer-page form input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* Кнопка загрузки файла */
+/* Поле загрузки файла */
+.upload-group input[type="file"] {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+/* Кнопка Register */
+.organizer-page .register-button {
+  width: 100%;
+  padding: 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  font-size: 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-bottom: 10px; /* Отступ снизу */
+}
+
+.organizer-page .register-button:hover {
+  background-color: #0056b3;
+}
+
+/* Кнопка Back */
+.organizer-page .back-button {
+  width: 100%;
+  padding: 10px;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  font-size: 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.organizer-page .back-button:hover {
+  background-color: #5a6268;
+}
+
+
+
+/* Специфичные стили для страницы болельщика */
+.fan-page {
+  height: auto; /* Автоматическая высота */
+  text-align: left; /* Выравнивание по левому краю */
+}
+
+.fan-page form label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.fan-page form input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.fan-page .dropdown-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.fan-page .dropdown-group input {
+  flex: 1;
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 4px 0 0 4px;
+}
+
+.fan-page .dropdown-group select {
+  width: 100px;
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-left: none;
+  border-radius: 0 4px 4px 0;
+  background-color: #fff;
+  cursor: pointer;
+}
+
+.fan-page .register-button {
+  width: 100%;
+  padding: 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  font-size: 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-bottom: 20px; /* Отступ снизу */
+}
+
+.fan-page .register-button:hover {
+  background-color: #0056b3;
+}
+
+/* Кнопка Back */
+.fan-page .back-button, .organizer-page .back-button {
+  width: 100%;
+  padding: 10px;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  font-size: 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.fan-page .back-button:hover, .organizer-page .back-button:hover {
+  background-color: #5a6268;
+}
+
+/* Контейнер кнопок Fan и Organizer */
+.buttons {
+  display: flex;             /* Расположить элементы в одну строку */
+  justify-content: center;   /* Выровнять кнопки по центру */
+  gap: 20px;                 /* Расстояние между кнопками */
+  margin-bottom: 20px;       /* Отступ снизу для кнопки Back */
+}
+
+/* Кнопки Fan и Organizer */
+.role-button {
+  width: 150px;              /* Одинаковая ширина кнопок */
+  padding: 10px;
+  background-color: #c4e538;
+  border: none;
+  border-radius: 5px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color 0.3s ease;
+}
+
+.role-button:hover {
+  background-color: #a3cb38;
+}
+
+
+
+/* Стиль для страницы входа */
+.login-page {
+  height: auto;
+  text-align: center;
+}
+
+.login-page .logo img {
+  width: 300px;
+  height: auto;
+  margin-bottom: 20px;
+  border-radius: 8px;
+}
+
+/* Поле ввода */
+.login-page input[type="text"] {
+  width: 80%;
+  padding: 10px;
+  margin-bottom: 20px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+/* Кнопки */
+.login-page .form-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.login-page .login-button, 
+.login-page .register-button {
+  width: 150px;
+  padding: 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  font-size: 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.login-page .register-button {
+  background-color: #6c757d;
+}
+
+.login-page .login-button:hover {
+  background-color: #0056b3;
+}
+
+.login-page .register-button:hover {
+  background-color: #5a6268;
+}
+
+
+
+/* Стиль для страницы входа */
+.login-step2 {
+  width: 400px;
+  padding: 20px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  text-align: left;
+}
+
+.login-step2 h1 {
+  text-align: center;
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+.login-step2 label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.login-step2 input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.login-step2 .login-button {
+  width: 100%;
+  padding: 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  font-size: 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.login-step2 .login-button:hover {
+  background-color: #0056b3;
+}
+
+/* Кнопка Back для страницы входа */
+.login-back-button {
+  width: 120px;              /* Ширина кнопки меньше, чем у других */
+  padding: 8px;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  font-size: 14px;           /* Уменьшенный шрифт */
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 10px;          /* Отступ сверху от кнопки Log In */
+}
+
+.login-back-button:hover {
+  background-color: #5a6268;
+}
+
+
+
+/* Контейнер для кнопки Back */
+.registration-back-container {
+  margin-top: 20px;          /* Отступ сверху от кнопок Fan и Organizer */
+  display: flex;
+  justify-content: center;   /* Центрирование кнопки Back */
+  margin-left: -170px;        /* Сдвиг кнопки Back левее */
+}
+
+/* Кнопка Back для страницы регистрации */
+.registration-back-button {
+  width: 150px; /* Такая же ширина, как у кнопок Fan и Organizer */
+  padding: 8px;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  font-size: 14px; /* Уменьшенный шрифт */
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.registration-back-button:hover {
+  background-color: #5a6268;
+}
+
