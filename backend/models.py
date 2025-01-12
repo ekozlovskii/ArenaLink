@@ -3,17 +3,14 @@ from datetime import datetime
 
 db = SQLAlchemy()
 
-<<<<<<< HEAD
-=======
 # Таблица пользователей (User)
->>>>>>> a9452746a814bb61a252de93cd40cac295ac910d
+
 class User(db.Model):
     __tablename__ = 'user'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     login = db.Column(db.String(100), nullable=False)
     name = db.Column(db.String(100), nullable=False)
-<<<<<<< HEAD
     password = db.Column(db.String(100), nullable=False)
     role = db.Column(db.String(50), nullable=False)  # 'fan' или 'organizer'
     contact = db.Column(db.String(255), nullable=True)  # Только для организаторов
@@ -23,19 +20,6 @@ class User(db.Model):
 
     def __repr__(self):
         return f'<User {self.name} ({self.role})>'
-=======
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
-    role = db.Column(db.String(50), nullable=False, default='user')  # 'user', 'organizer', 'admin'
-    date_create = db.Column(db.DateTime, default=datetime.utcnow)
-    date_update = db.Column(db.DateTime, onupdate=datetime.utcnow)
-
-    # Для организаторов добавим два дополнительных поля
-    contact_info = db.Column(db.String(200))  # Текст для связи с организатором
-    file = db.Column(db.String(200))  # Путь к файлу, загруженному организатором
-
-    def __repr__(self):
-        return f"<User {self.name}, Role {self.role}>"
 
 # Таблица уведомлений (Notifications)
 class Notification(db.Model):
@@ -125,5 +109,3 @@ class Image(db.Model):
     url = db.Column(db.Text)
     date_create = db.Column(db.DateTime, default=datetime.utcnow)
     date_update = db.Column(db.DateTime, onupdate=datetime.utcnow)
-
->>>>>>> a9452746a814bb61a252de93cd40cac295ac910d
