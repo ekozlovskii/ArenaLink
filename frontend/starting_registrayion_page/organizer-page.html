@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Organizer Registration</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container organizer-page">
+    <h1>Organizer Registration</h1>
+    <form id="organizer-registration-form">
+      <!-- Поле Enter login с выпадающим списком -->
+      <label for="login">Enter login:</label>
+      <div class="dropdown-group">
+        <input type="text" id="login" name="login" placeholder="Enter your login" required>
+        <select id="login-type" name="login-type">
+          <option value="email">Email</option>
+          <option value="vk">VK</option>
+          <option value="telegram">Telegram</option>
+        </select>
+      </div>
+
+      <!-- Поле для ввода пароля -->
+      <label for="password">Create password:</label>
+      <input type="password" id="password" placeholder="Enter your password" required>
+
+      <!-- Поле для ввода названия организации -->
+      <label for="organization">Organization name:</label>
+      <input type="text" id="organization" placeholder="Enter organization name" required>
+
+      <!-- Поле для ввода контактной информации -->
+      <label for="contact">Contact information:</label>
+      <input type="text" id="contact" placeholder="Enter contact details" required>
+
+      <!-- Поле для загрузки файлов -->
+      <label for="documents">Upload file:</label>
+      <div class="upload-group">
+        <input type="file" id="documents" name="documents" required>
+      </div>
+
+      <!-- Кнопки Register и Back -->
+      <div class="form-buttons">
+        <button type="submit" class="register-button">Register</button>
+      </div>
+      <div class="form-buttons">
+        <button type="button" class="back-button" onclick="window.history.back()">Back</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Подключение JavaScript -->
+  <script src="script.js"></script>
+</body>
+</html>
