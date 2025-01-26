@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log In</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container login-step2">
+    <h1>Log In</h1>
+
+    <form id="login-form">
+      <label for="login">Enter login:</label>
+      <input type="text" id="login" name="login" placeholder="Enter your login" required>
+
+      <label for="password">Enter password:</label>
+      <input type="password" id="password" name="password" placeholder="Enter your password" required>
+
+      <button type="submit" class="login-button">Log In</button>
+    </form>
+
+    <!-- Back button -->
+    <div class="form-buttons">
+      <button type="button" class="login-back-button" onclick="window.history.back()">Back</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
