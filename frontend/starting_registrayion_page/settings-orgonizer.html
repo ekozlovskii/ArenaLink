@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container settings-orgonizer">
+    <h1>Settings</h1>
+
+    <label for="organizer-name">Your name</label>
+    <div class="input-group">
+      <input type="text" id="organizer-name" placeholder="Loading...">
+      <img src="edit-icon.png" alt="Edit" class="edit-icon">
+    </div>
+
+    <label for="change-password">Change password</label>
+    <input type="password" id="change-password" placeholder="Введите новый пароль">
+
+    <button id="save-button" class="save-button">Сохранить</button>
+    <button class="back-button" onclick="window.history.back()">Назад</button>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

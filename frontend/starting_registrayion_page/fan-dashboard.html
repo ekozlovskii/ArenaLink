@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fan Personal Account</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container fan-dashboard">
+    <h1>Personal Account</h1>
+    <input type="text" id="user-name" value="" readonly>
+
+    <div class="dashboard-buttons">
+      <button onclick="window.location.href='fan-matches.html'">My Matches</button>
+      <button onclick="window.location.href='fan-tickets.html'">My Tickets</button>
+      <button onclick="window.location.href='fan-settings.html'">Settings</button>
+      <button onclick="window.location.href='main.html'" class="back-button">Back to Main</button>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const userName = sessionStorage.getItem('userName');
+      if (userName) {
+        document.getElementById('user-name').value = userName;
+      } else {
+        alert('Access denied! Please log in again.');
+        window.location.href = 'login.html';
+      }
+    });
+  </script>
+</body>
+</html>
