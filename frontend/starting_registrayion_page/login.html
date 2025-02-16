@@ -1,23 +1,110 @@
+<!-- HTML Document for Registration Page with Comments -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Arena Link - Login</title>
-  <link rel="stylesheet" href="style.css">
+  <!-- Meta settings for character encoding and mobile responsiveness -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registration</title>
+  
+  <!-- Inline CSS for page styling -->
+  <style>
+    /* Full-page centered layout */
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    /* Main content container styling */
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+      text-align: center;
+      width: 500px;
+    }
+
+    /* Logo styling */
+    .logo img {
+      width: 150px;
+      margin-bottom: 20px;
+    }
+
+    /* Title styling */
+    h1 {
+      margin-bottom: 30px;
+    }
+
+    /* Buttons container with horizontal layout */
+    .buttons {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    /* Style for Fan and Organizer buttons */
+    .role-button, .registration-back-button {
+      padding: 15px 30px;
+      font-size: 18px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .role-button {
+      background-color: #c4e538;
+      color: black;
+      font-weight: bold;
+    }
+    .role-button:hover {
+      background-color: #a3cb38;
+    }
+
+    /* Back button styling */
+    .registration-back-button {
+      background-color: #6c757d;
+      color: white;
+      margin-top: 20px;
+      width: 100%;
+    }
+    .registration-back-button:hover {
+      background-color: #5a6268;
+    }
+  </style>
 </head>
 <body>
-  <div class="container login-page">
-    <!-- Логотип -->
+  <!-- Main Registration Container -->
+  <div class="container">
     <div class="logo">
-      <img src="logo.png" alt="Arena Link Logo">
+      <img src="logo.png" alt="Arena Link Logo" />
     </div>
-
-    <!-- Кнопки Log In и Sign Up -->
-    <div class="form-buttons">
-      <button type="button" class="login-button" onclick="window.location.href='login-step2.html'">Log In</button>
-      <button type="button" class="register-button" onclick="window.location.href='index.html'">Sign Up</button>
+    
+    <!-- Title -->
+    <h1>Registration</h1>
+    
+    <!-- Buttons for Fan and Organizer Registration -->
+    <div class="buttons">
+      <button class="role-button" onclick="window.location.href='fan-registration.html'">Fan</button>
+      <button class="role-button" onclick="window.location.href='organizer-page.html'">Organizer</button>
     </div>
+    
+    <!-- Back Button -->
+    <button class="registration-back-button" onclick="window.history.back()">Back</button>
   </div>
+
+  <!-- JavaScript for console logging -->
+  <script>
+    console.log('Registration page loaded.');
+  </script>
 </body>
 </html>

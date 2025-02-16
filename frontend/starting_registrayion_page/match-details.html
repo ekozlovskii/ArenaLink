@@ -1,0 +1,124 @@
+<!-- HTML Document for Match Details Page -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Meta settings for encoding and viewport adjustment -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Match Details</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* General page styling */
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f4f4f4;
+    }
+    /* Main content container */
+    .container {
+      width: 90%;
+      max-width: 600px;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      text-align: center;
+    }
+    /* Heading and paragraph spacing */
+    h1, h2, p {
+      margin: 10px 0;
+    }
+    /* Button styling */
+    .back-button, .book-button {
+      display: block;
+      margin: 20px auto 0;
+      padding: 10px 20px;
+      border-radius: 5px;
+      border: none;
+      cursor: pointer;
+    }
+    .book-button {
+      background-color: #28a745;
+      color: white;
+    }
+    .back-button {
+      background-color: #6c757d;
+      color: white;
+    }
+    /* Hover effects for buttons */
+    .back-button:hover {
+      background-color: #5a6268;
+    }
+    .book-button:hover {
+      background-color: #218838;
+    }
+  </style>
+</head>
+<body>
+  <!-- Match details container -->
+  <div class="container">
+    <h1 id="match-name">Match Name</h1>
+    <h2 id="match-date">Match Date</h2>
+    <p id="match-stadium">Stadium</p>
+    <p id="ticket-price">Ticket Price</p>
+    <p id="ticket-quantity">Available Tickets</p>
+    <!-- Action buttons -->
+    <button class="book-button" onclick="bookMatch()">Book Ticket</button>
+    <button class="back-button" onclick="goBack()">Back</button>
+  </div>
+
+  <script>
+    // Navigate back to the previous page
+    function goBack() {
+      window.history.back();
+    }
+
+    // Handle ticket booking for the match
+    function bookMatch() {
+      const matchId = new URLSearchParams(window.location.search).get('id');
+      const userId = sessionStorage.getItem('userId');
+
+      console.log('Booking match with:', { userId, matchId }); // Debug log
+
+      if (!userId) {
+        alert('You must be logged in to book a match.');
+        window.location.href = 'login.html';
+        return;
+      }
+
+      fetch(`http://127.0.0.1:5000/book_match`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, match_id: matchId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        alert(data.message);
+      })
+      .catch(error => console.error('Error booking match:', error));
+    }
+
+    // Load match details on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      const matchId = new URLSearchParams(window.location.search).get('id');
+      if (matchId) {
+        fetch(`http://127.0.0.1:5000/get_match/${matchId}`)
+          .then(response => response.json())
+          .then(match => {
+            document.getElementById('match-name').innerText = match.name;
+            document.getElementById('match-date').innerText = `${match.date.replace('T', ' at ')}`;
+            document.getElementById('match-stadium').innerText = `Stadium: ${match.stadium}`;
+            document.getElementById('ticket-price').innerText = `Ticket Price: ₽${match.ticket_price}`;
+            document.getElementById('ticket-quantity').innerText = `Available Tickets: ${match.ticket_quantity}`;
+          })
+          .catch(error => console.error('Error loading match details:', error));
+      } else {
+        document.querySelector('.container').innerHTML = '<p>Match not found!</p>';
+      }
+    });
+  </script>
+</body>
+</html>

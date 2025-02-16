@@ -1,11 +1,15 @@
+<!-- HTML Document for Main Page -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Meta settings for proper rendering and responsiveness -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Main Page</title>
-  <link rel="stylesheet" href="style.css">
+  
+  <!-- Inline CSS for styling -->
   <style>
+    /* Full page flex layout */
     body {
       display: flex;
       justify-content: center;
@@ -15,6 +19,8 @@
       margin: 0;
       background-color: #f4f4f4;
     }
+
+    /* Main content container styling */
     .container {
       width: 90%;
       max-width: 1400px;
@@ -23,66 +29,89 @@
       padding: 20px;
       border-radius: 10px;
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      position: relative;
+      display: flex;
+      flex-direction: column;
     }
+
+    /* Header section with logo and profile button */
     .header {
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      position: absolute;
-      top: 20px;
-      left: 20px;
+      margin-bottom: 20px;
     }
+
     .header img {
-      height: 50px;
-      margin-right: 15px;
+      height: 80px;
     }
+
     .header button {
       background-color: #007BFF;
       color: white;
       border: none;
-      padding: 10px 15px;
-      cursor: pointer;
+      padding: 15px 25px;
+      font-size: 18px;
       border-radius: 5px;
+      cursor: pointer;
     }
+
+    /* Matches list container with scrollable view */
     .matches-list {
-      margin-top: 100px;
+      flex-grow: 1;
       overflow-y: auto;
-      max-height: 70vh;
-    }
-    .match-item {
-      padding: 10px;
-      margin-bottom: 10px;
       border: 1px solid #ccc;
       border-radius: 5px;
+      padding: 10px;
+    }
+
+    /* Match item styling with hover effect */
+    .match-item {
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 5px;
       background-color: #fff;
+      transition: transform 0.2s;
+      border: 1px solid #ccc;
+    }
+
+    .match-item:hover {
+      transform: scale(1.02);
+      background-color: #f0f8ff;
     }
   </style>
 </head>
 <body>
+  <!-- Main Content Container -->
   <div class="container">
     <div class="header">
+      <!-- Logo and Profile Button -->
       <img src="logo.png" alt="ArenaLink Logo">
       <button id="dashboard-button">Profile</button>
     </div>
+    
+    <!-- Page Title and Matches Section -->
     <h1>Welcome to ArenaLink</h1>
     <h2>Upcoming Matches</h2>
     <div id="matches-list" class="matches-list"></div>
   </div>
 
+  <!-- JavaScript Logic -->
   <script>
     document.addEventListener('DOMContentLoaded', function() {
+      // Determine and redirect to the appropriate dashboard based on user role
       const userRole = sessionStorage.getItem('userRole');
       const dashboardButton = document.getElementById('dashboard-button');
       
       if (userRole === 'fan') {
-        dashboardButton.onclick = function() { window.location.href = 'fan-dashboard.html'; };
+        dashboardButton.onclick = () => window.location.href = 'fan-dashboard.html';
       } else if (userRole === 'organizer') {
-        dashboardButton.onclick = function() { window.location.href = 'organizer-dashboard.html'; };
+        dashboardButton.onclick = () => window.location.href = 'organizer-dashboard.html';
       } else {
         dashboardButton.disabled = true;
         dashboardButton.innerText = 'Please log in';
       }
 
+      // Fetch and display list of upcoming matches
       fetch('http://127.0.0.1:5000/matches')
         .then(response => response.json())
         .then(matches => {
@@ -91,10 +120,15 @@
             list.innerHTML = '<p>No matches available</p>';
             return;
           }
+
+          // Render each match as a clickable item
           matches.forEach(match => {
             const div = document.createElement('div');
             div.classList.add('match-item');
             div.innerHTML = `<strong>${match.name}</strong> - ${match.date} at ${match.stadium}`;
+            div.addEventListener('click', () => {
+              window.location.href = `match-details.html?id=${match.id}`;
+            });
             list.appendChild(div);
           });
         })

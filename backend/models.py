@@ -75,10 +75,10 @@ class Match(db.Model):
 class Ticket(db.Model):
     ticket_id = db.Column(db.Integer, primary_key=True)
     match_id = db.Column(db.Integer, db.ForeignKey('match.match_id'))
-    sector = db.Column(db.String(100))
-    row = db.Column(db.Integer)
-    seat = db.Column(db.Integer)
-    price = db.Column(db.Numeric)
+    sector = db.Column(db.String(100), nullable=True)
+    row = db.Column(db.Integer, nullable=True)
+    seat = db.Column(db.Integer, nullable=True)
+    price = db.Column(db.Numeric, nullable=True)
     current_owner = db.Column(db.Integer, db.ForeignKey('user.id'))
     status = db.Column(db.Enum('available', 'sold', 'reserved', name='ticket_status_enum'))
     date_create = db.Column(db.DateTime, default=datetime.utcnow)
@@ -86,6 +86,7 @@ class Ticket(db.Model):
 
     match = db.relationship('Match', backref=db.backref('tickets', lazy=True))
     owner = db.relationship('User', backref=db.backref('owned_tickets', lazy=True))
+
 
 # Таблица заказов (Orders)
 class Order(db.Model):

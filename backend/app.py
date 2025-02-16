@@ -89,6 +89,7 @@ def login():
         return jsonify({'error': 'Invalid login or password'}), 401
 
 
+
 @app.route('/logout', methods=['POST'])
 def logout():
     session.clear()
@@ -180,6 +181,52 @@ def update_match():
 
     db.session.commit()
     return jsonify({'message': 'Match updated successfully!'}), 200
+
+
+# ------------------------ Бронирование матча ------------------------
+
+# В app.py
+@app.route('/book_match', methods=['POST'])
+def book_match():
+    data = request.get_json()
+    user_id = data.get('user_id')
+    match_id = data.get('match_id')
+
+    print(f'Received user_id: {user_id}, match_id: {match_id}')  # ✅ Лог в консоли сервера
+
+    if not user_id or not match_id:
+        return jsonify({'error': 'Missing user or match ID'}), 400
+
+    existing_ticket = Ticket.query.filter_by(match_id=match_id, current_owner=user_id).first()
+    if existing_ticket:
+        return jsonify({'message': 'Match already booked!'}), 200
+
+    new_ticket = Ticket(
+        match_id=match_id,
+        current_owner=user_id,
+        status='reserved'
+    )
+    db.session.add(new_ticket)
+    db.session.commit()
+
+    return jsonify({'message': 'Match booked successfully!'}), 201
+
+
+@app.route('/my_matches/<int:user_id>', methods=['GET'])
+def my_matches(user_id):
+    tickets = Ticket.query.filter_by(current_owner=user_id, status='reserved').all()
+    matches = [Match.query.get(ticket.match_id) for ticket in tickets]
+
+    result = [
+        {
+            'id': match.match_id,
+            'name': match.match_name,
+            'stadium': match.stadium_name,
+            'date': match.date_time.strftime('%Y-%m-%d %H:%M')
+        } for match in matches if match is not None
+    ]
+    return jsonify(result), 200
+
 
 # ------------------------ ЗАПУСК СЕРВЕРА ------------------------
 

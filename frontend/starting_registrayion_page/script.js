@@ -85,6 +85,8 @@ if (loginForm) {
       sessionStorage.setItem('userRole', data.role);
       sessionStorage.setItem('user_id', data.user_id); // ✅ Теперь ID пользователя сохраняется!
 
+      console.log('Logged in as:', sessionStorage.getItem('userId'));  // Проверка в консоли
+
       window.location.href = 'main.html'; // Перенаправление на главную страницу
     })
     .catch(error => {

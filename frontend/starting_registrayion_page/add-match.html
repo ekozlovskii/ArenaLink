@@ -1,57 +1,66 @@
+<!-- Complete HTML Document for Adding a Match with Comments -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Metadata and basic styling -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Add Match</title>
-  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f4f4f9;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+      width: 500px;
+    }
+    label, input, select {
+      display: block;
+      margin-bottom: 10px;
+      width: 100%;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
-  <div class="container add-match-container">
+  <div class="container">
     <h1>Add Match</h1>
     <form id="add-match-form">
       <label for="match-name">Match Name:</label>
-      <input type="text" id="match-name" placeholder="Enter match name" required>
-
+      <input type="text" id="match-name" required>
       <label for="match-date">Date and Time:</label>
       <input type="datetime-local" id="match-date" required>
-
       <label for="stadium-name">Stadium Name:</label>
-      <input type="text" id="stadium-name" placeholder="Enter stadium name" required>
-
-      <label for="stadium-plan">Upload Stadium Plan:</label>
-      <input type="file" id="stadium-plan" required>
-
-      <label for="match-type">Select Match Type:</label>
-      <select id="match-type">
-        <option value="friendly">Friendly</option>
-        <option value="tournament">Tournament</option>
-      </select>
-
+      <input type="text" id="stadium-name" required>
       <label for="ticket-quantity">Ticket Quantity:</label>
-      <input type="number" id="ticket-quantity" placeholder="Enter ticket quantity" required>
-
-      <label for="ticket-price">Ticket Price:</label>
-      <input type="number" id="ticket-price" placeholder="Enter ticket price" step="0.01" required>
-
-      <button type="submit" class="save-button">Save</button>
-      <button type="button" class="cancel-button" onclick="window.history.back()">Cancel</button>
+      <input type="number" id="ticket-quantity" required>
+      <label for="ticket-price">Ticket Price (₽):</label>
+      <input type="number" id="ticket-price" step="0.01" required>
+      <button type="submit">Save</button>
+      <button type="button" onclick="window.history.back()">Cancel</button>
     </form>
   </div>
-
+  
   <script>
+    // Handle form submission and send data to backend
     document.getElementById('add-match-form').addEventListener('submit', function(event) {
       event.preventDefault();
-
-      const formData = new FormData();
-      formData.append('match_name', document.getElementById('match-name').value);
-      formData.append('date_time', document.getElementById('match-date').value);
-      formData.append('stadium_name', document.getElementById('stadium-name').value);
-      formData.append('stadium_plan', document.getElementById('stadium-plan').files[0]);
-      formData.append('match_type', document.getElementById('match-type').value);
-      formData.append('ticket_quantity', document.getElementById('ticket-quantity').value);
-      formData.append('ticket_price', document.getElementById('ticket-price').value);
-
+      const formData = new FormData(event.target);
       fetch('http://127.0.0.1:5000/add_match', {
         method: 'POST',
         body: formData,

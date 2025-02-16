@@ -1,61 +1,70 @@
+<!-- Restored HTML Document for Editing Match Details with Complete Comments -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Page metadata and styling -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Edit Match</title>
-  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f4f4f9;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+      width: 500px;
+    }
+    label, input, select {
+      display: block;
+      margin-bottom: 10px;
+      width: 100%;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
-  <div class="container add-match-container">
+  <div class="container">
     <h1>Edit Match</h1>
     <form id="edit-match-form">
       <input type="hidden" id="match-id">
-
       <label for="match-name">Match Name:</label>
       <input type="text" id="match-name" required>
-
       <label for="match-date">Date and Time:</label>
       <input type="datetime-local" id="match-date" required>
-
       <label for="stadium-name">Stadium Name:</label>
       <input type="text" id="stadium-name" required>
-
-      <label for="stadium-plan">Upload Stadium Plan:</label>
-      <input type="file" id="stadium-plan">
-
-      <label for="match-type">Select Match Type:</label>
-      <select id="match-type">
-        <option value="friendly">Friendly</option>
-        <option value="tournament">Tournament</option>
-      </select>
-
       <label for="ticket-quantity">Ticket Quantity:</label>
       <input type="number" id="ticket-quantity" required>
-
       <label for="ticket-price">Ticket Price (₽):</label>
       <input type="number" id="ticket-price" step="0.01" required>
-
-      <button type="submit" class="save-button">Update</button>
-      <button type="button" class="cancel-button" onclick="window.history.back()">Cancel</button>
+      <button type="submit">Update</button>
+      <button type="button" onclick="window.history.back()">Cancel</button>
     </form>
   </div>
-
+  
   <script>
-    // Function to get query parameters from URL
-    function getQueryParam(param) {
-      const urlParams = new URLSearchParams(window.location.search);
-      return urlParams.get(param);
-    }
-
     document.addEventListener('DOMContentLoaded', function () {
-      const matchId = getQueryParam('id');
+      const matchId = new URLSearchParams(window.location.search).get('id');
       if (!matchId) {
         alert('Match ID not found.');
         window.location.href = 'my-matches.html';
         return;
       }
-
       fetch(`http://127.0.0.1:5000/get_match/${matchId}`)
         .then(response => response.json())
         .then(match => {
@@ -63,42 +72,18 @@
           document.getElementById('match-name').value = match.match_name;
           document.getElementById('match-date').value = match.date_time.replace(' ', 'T');
           document.getElementById('stadium-name').value = match.stadium_name;
-          document.getElementById('match-type').value = match.match_type;
           document.getElementById('ticket-quantity').value = match.ticket_quantity;
           document.getElementById('ticket-price').value = match.ticket_price;
-        })
-        .catch(error => {
-          console.error('Error fetching match:', error);
-          alert('Failed to load match details.');
-          window.location.href = 'my-matches.html';
         });
-
       document.getElementById('edit-match-form').addEventListener('submit', function (event) {
         event.preventDefault();
-
-        const formData = new FormData();
-        formData.append('match_id', document.getElementById('match-id').value);
-        formData.append('match_name', document.getElementById('match-name').value);
-        formData.append('date_time', document.getElementById('match-date').value);
-        formData.append('stadium_name', document.getElementById('stadium-name').value);
-        formData.append('stadium_plan', document.getElementById('stadium-plan').files[0]);
-        formData.append('match_type', document.getElementById('match-type').value);
-        formData.append('ticket_quantity', document.getElementById('ticket-quantity').value);
-        formData.append('ticket_price', document.getElementById('ticket-price').value);
-
+        const formData = new FormData(event.target);
         fetch('http://127.0.0.1:5000/update_match', {
           method: 'POST',
           body: formData,
         })
         .then(response => response.json())
-        .then(data => {
-          alert(data.message);
-          window.location.href = 'my-matches.html';
-        })
-        .catch(error => {
-          console.error('Error updating match:', error);
-          alert('Failed to update match. Please try again.');
-        });
+        .then(data => alert(data.message));
       });
     });
   </script>
