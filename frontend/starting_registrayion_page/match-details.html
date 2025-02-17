@@ -1,14 +1,11 @@
-<!-- HTML Document for Match Details Page -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- Meta settings for encoding and viewport adjustment -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Match Details</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    /* General page styling */
     body {
       display: flex;
       justify-content: center;
@@ -17,7 +14,6 @@
       margin: 0;
       background-color: #f4f4f4;
     }
-    /* Main content container */
     .container {
       width: 90%;
       max-width: 600px;
@@ -27,15 +23,14 @@
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
       text-align: center;
     }
-    /* Heading and paragraph spacing */
     h1, h2, p {
       margin: 10px 0;
     }
-    /* Button styling */
-    .back-button, .book-button {
-      display: block;
-      margin: 20px auto 0;
+    .book-button, .back-button {
+      display: inline-block;
+      margin: 10px;
       padding: 10px 20px;
+      font-size: 16px;
       border-radius: 5px;
       border: none;
       cursor: pointer;
@@ -48,77 +43,114 @@
       background-color: #6c757d;
       color: white;
     }
-    /* Hover effects for buttons */
-    .back-button:hover {
-      background-color: #5a6268;
-    }
     .book-button:hover {
       background-color: #218838;
+    }
+    .back-button:hover {
+      background-color: #5a6268;
     }
   </style>
 </head>
 <body>
-  <!-- Match details container -->
-  <div class="container">
-    <h1 id="match-name">Match Name</h1>
-    <h2 id="match-date">Match Date</h2>
-    <p id="match-stadium">Stadium</p>
-    <p id="ticket-price">Ticket Price</p>
-    <p id="ticket-quantity">Available Tickets</p>
-    <!-- Action buttons -->
-    <button class="book-button" onclick="bookMatch()">Book Ticket</button>
-    <button class="back-button" onclick="goBack()">Back</button>
-  </div>
 
-  <script>
-    // Navigate back to the previous page
-    function goBack() {
-      window.history.back();
+<div class="container">
+  <h1 id="match-name">Match Name</h1>
+  <h2 id="match-date">Match Date</h2>
+  <p id="match-stadium">Stadium</p>
+  <p id="ticket-price">Ticket Price</p>
+  <p id="ticket-quantity">Available Tickets</p>
+  <button class="book-button" onclick="bookMatch()">Book Ticket</button>
+  <button class="back-button" onclick="goBack()">Back</button>
+</div>
+
+<script>
+  const BASE_URL = 'http://127.0.0.1:5000';
+
+  function getMatchIdFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('id');
+  }
+
+  function goBack() {
+    window.history.back();
+  }
+
+  document.addEventListener('DOMContentLoaded', async function() {
+    const matchId = getMatchIdFromURL();
+    if (!matchId) {
+      alert('⚠️ No match ID provided');
+      window.location.href = 'main.html';
+      return;
     }
 
-    // Handle ticket booking for the match
-    function bookMatch() {
-      const matchId = new URLSearchParams(window.location.search).get('id');
-      const userId = sessionStorage.getItem('userId');
+    console.log('🔍 Match ID from URL:', matchId);
 
-      console.log('Booking match with:', { userId, matchId }); // Debug log
+    // ✅ Запрашиваем данные о матче
+    try {
+      const response = await fetch(`${BASE_URL}/get_match/${matchId}`, {
+        method: 'GET',
+        mode: 'cors',
+        credentials: 'include'
+      });
+      const matchData = await response.json();
 
-      if (!userId) {
-        alert('You must be logged in to book a match.');
-        window.location.href = 'login.html';
-        return;
+      console.log('📡 Match API Response:', matchData);
+
+      if (!response.ok || !matchData.name) {
+        throw new Error(`Error loading match details: ${matchData.error}`);
       }
 
-      fetch(`http://127.0.0.1:5000/book_match`, {
+      // ✅ Отображаем информацию в уже существующие блоки
+      document.getElementById('match-name').innerText = matchData.name || 'No name';
+      document.getElementById('match-date').innerText = `Date: ${matchData.date || 'N/A'}`;
+      document.getElementById('match-stadium').innerText = `Stadium: ${matchData.stadium || 'N/A'}`;
+      document.getElementById('ticket-price').innerText = `Price: ${matchData.ticket_price || 'N/A'} USD`;
+      document.getElementById('ticket-quantity').innerText = `Available Tickets: ${matchData.ticket_quantity || 'N/A'}`;
+
+    } catch (error) {
+      console.error('❌ Failed to load match details:', error);
+      alert('🚫 Failed to load match details.');
+    }
+  });
+
+  // ✅ Функция бронирования
+  async function bookMatch() {
+    const matchId = getMatchIdFromURL();
+    const userId = sessionStorage.getItem('userId');
+    if (!userId) {
+      alert('🚫 You must be logged in to book a match');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${BASE_URL}/book_match`, {
         method: 'POST',
+        mode: 'cors',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: userId, match_id: matchId })
-      })
-      .then(response => response.json())
-      .then(data => {
-        alert(data.message);
-      })
-      .catch(error => console.error('Error booking match:', error));
-    }
+      });
 
-    // Load match details on page load
-    document.addEventListener('DOMContentLoaded', function() {
-      const matchId = new URLSearchParams(window.location.search).get('id');
-      if (matchId) {
-        fetch(`http://127.0.0.1:5000/get_match/${matchId}`)
-          .then(response => response.json())
-          .then(match => {
-            document.getElementById('match-name').innerText = match.name;
-            document.getElementById('match-date').innerText = `${match.date.replace('T', ' at ')}`;
-            document.getElementById('match-stadium').innerText = `Stadium: ${match.stadium}`;
-            document.getElementById('ticket-price').innerText = `Ticket Price: ₽${match.ticket_price}`;
-            document.getElementById('ticket-quantity').innerText = `Available Tickets: ${match.ticket_quantity}`;
-          })
-          .catch(error => console.error('Error loading match details:', error));
+      const result = await response.json();
+      if (response.ok) {
+        alert('✅ Match booked successfully!');
+
+        // ✅ Уменьшаем количество билетов в UI
+        let ticketQuantityElement = document.getElementById('ticket-quantity');
+        let currentTickets = parseInt(ticketQuantityElement.innerText.replace(/\D/g, ''), 10);
+        if (!isNaN(currentTickets) && currentTickets > 0) {
+          ticketQuantityElement.innerText = `Available Tickets: ${currentTickets - 1}`;
+        }
       } else {
-        document.querySelector('.container').innerHTML = '<p>Match not found!</p>';
+        alert(`🚫 Booking failed: ${result.error}`);
       }
-    });
-  </script>
+    } catch (error) {
+      console.error('❌ Booking error:', error);
+      alert('🚫 Booking failed due to an error.');
+    }
+  }
+
+</script>
+
 </body>
 </html>

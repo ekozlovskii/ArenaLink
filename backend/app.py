@@ -1,21 +1,147 @@
-from flask import Flask, request, jsonify, session
+import os
+from flask import Flask, request, jsonify, Response, make_response, session
 from flask_cors import CORS
 from models import db, User, Match, Ticket
-from datetime import datetime
-import os
+from datetime import datetime,  timedelta, UTC
+import jwt
+from dotenv import load_dotenv
 
+# Загружаем переменные окружения из .env файла
+load_dotenv()
+
+# Проверяем наличие ключей в переменных окружения
+if not os.getenv('FLASK_SECRET_KEY') or not os.getenv('JWT_SECRET_KEY'):
+    raise ValueError("Ошибка: Отсутствуют FLASK_SECRET_KEY или JWT_SECRET_KEY в .env файле")
+
+# ✅ Создаем ОДИН экземпляр Flask
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///arenalink.db'
+base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))# Формируем путь к базе данных
+instance_path = os.path.join(base_dir, 'instance')
+db_path = os.path.join(instance_path, 'arenalink.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'supersecretkey'
+app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY', 'fallback_secret')
 
-CORS(app)
+
+
+# Инициализация базы данных с привязкой к приложению
 db.init_app(app)
+
+# Настройка CORS с поддержкой куки
+CORS(app, resources={r"/*": {"origins": "http://127.0.0.1:5500"}}, supports_credentials=True)
+
+@app.after_request
+def after_request(response):
+    response.headers['Access-Control-Allow-Origin'] = 'http://127.0.0.1:5500'
+    response.headers['Access-Control-Allow-Credentials'] = 'true'
+    response.headers['Access-Control-Allow-Methods'] = 'GET,POST,OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+    return response
+
+# Consolidated Logout Route
+@app.route('/logout', methods=['POST', 'OPTIONS'])
+def user_logout():
+    if request.method == 'OPTIONS':
+        return jsonify({"message": "Preflight accepted"}), 200
+    response = jsonify({"message": "Logged out successfully"})
+    response.delete_cookie("auth_token")
+    return response, 200
+
+# Получаем SECRET_KEY для токенов
+SECRET_KEY = os.getenv('JWT_SECRET_KEY')
+
+# Функция для генерации JWT токена
+def create_jwt(user_id: int, role: str) -> str:
+    payload = {
+        "user_id": user_id,
+        "role": role,
+        "exp": datetime.now(UTC) + timedelta(hours=1)
+    }
+    return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 
 # Папка для загрузки файлов
 UPLOAD_FOLDER = 'instance/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+
+# ✅ Первый эндпоинт для проверки токена
+@app.route('/check-auth', methods=['GET', 'OPTIONS'])
+def check_auth():
+    if request.method == 'OPTIONS':
+        response = jsonify({"message": "Preflight for check-auth accepted"})
+        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        return response, 200
+
+    token = request.cookies.get('auth_token')
+    if not token:
+        return jsonify({'authenticated': False, 'error': 'No token found'}), 401
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        user = User.query.get(payload['user_id'])
+        if not user:
+            return jsonify({'authenticated': False, 'error': 'User not found'}), 401
+
+        return jsonify({
+            'authenticated': True,
+            'user_id': user.id,
+            'role': user.role,
+            'user_name': user.name
+        }), 200
+    except jwt.ExpiredSignatureError:
+        return jsonify({'authenticated': False, 'error': 'Token expired'}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({'authenticated': False, 'error': 'Invalid token'}), 401
+
+
+# ✅ Второй эндпоинт для проверки активности
+@app.route('/check-auth-status', methods=['GET'])
+def check_auth_status():
+    return jsonify({"message": "Check-auth endpoint is active"}), 200
+
+
+
+
+
+
+# Эндпоинт для проверки выдачи токена
+@app.route('/token-test', methods=['GET'])
+def token_test():
+    token = request.cookies.get("auth_token")
+    if token:
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+            return jsonify({"valid": True, "user_id": payload.get("user_id"), "role": payload.get("role")}), 200
+        except jwt.ExpiredSignatureError:
+            return jsonify({"valid": False, "error": "Token expired"}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({"valid": False, "error": "Invalid token"}), 401
+    return jsonify({"valid": False, "error": "No token found"}), 401
+
+# Декоратор для проверки и извлечения user_id из JWT
+def get_user_from_token():
+    token = request.cookies.get("auth_token")
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        return payload["user_id"]
+    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+        return None
+
+
+# ✅ Эндпоинт для обработки preflight-запросов (устранение ошибки 404 на OPTIONS /login)
+@app.route('/login', methods=['OPTIONS'])
+def login_options():
+    response = jsonify({"message": "Preflight for login accepted"})
+    response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    return response, 200
+
+
 
 # ------------------------ РЕГИСТРАЦИЯ И ЛОГИН ------------------------
 
@@ -30,11 +156,14 @@ def register():
         return jsonify({'error': 'This login is already taken'}), 400
 
     new_user = User(
-        login=data['login'],
-        name=data['name'],
-        password=data['password'],
-        role='fan'
+    login=data['login'],
+    name=data['name'],
+    password=data['password'],
+    role='fan',
+    date_create=datetime.now(),
+    date_update=datetime.now()
     )
+
     db.session.add(new_user)
     db.session.commit()
     return jsonify({'message': 'Fan registered successfully!'}), 201
@@ -67,33 +196,43 @@ def register_organizer():
     return jsonify({'message': 'Organizer registered successfully!'}), 201
 
 
+# Эндпоинт для входа (обновлен с куки-сохранением)
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
-    if not data or 'login' not in data or 'password' not in data:
-        return jsonify({'error': 'Missing credentials'}), 400
+    user = User.query.filter_by(login=data['login']).first()
+    if user and user.password == data['password']:
+        token = create_jwt(user.id, user.role)
+        response = make_response(jsonify({"message": "Login successful"}))
+        response.set_cookie(
+            key="auth_token",
+            value=token,
+            httponly=True,
+            secure=False,       # Для локального теста
+            samesite='Lax',     # Lax лучше для CORS при переходах
+            path='/',           # Устанавливаем корневой путь
+            max_age=3600
+        )
+        print(f"Auth token set in cookie for user {user.id}")
+        return response, 200
+    return jsonify({"error": "Invalid login or password"}), 401
 
-    user = User.query.filter_by(login=data['login'], password=data['password']).first()
+# Эндпоинт для добавления данных к пользователю с использованием user_id из токена
+@app.route('/user/data', methods=['POST'])
+def add_user_data():
+    user_id = get_user_from_token()
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.get_json()
+    user = User.query.get(user_id)
     if user:
-        session['user_id'] = user.id  # ✅ Явно устанавливаем user_id
-        session['user_role'] = user.role
-        session.modified = True  # ✅ Гарантируем сохранение сессии
-
-        return jsonify({
-            'message': 'Login successful!',
-            'user_id': user.id,
-            'role': user.role,
-            'name': user.name
-        }), 200
-    else:
-        return jsonify({'error': 'Invalid login or password'}), 401
+        user.additional_info = data.get('additional_info')
+        db.session.commit()
+        return jsonify({"message": "Data added successfully"}), 200
+    return jsonify({"error": "User not found"}), 404
 
 
-
-@app.route('/logout', methods=['POST'])
-def logout():
-    session.clear()
-    return jsonify({'message': 'Logged out successfully'}), 200
 
 # ------------------------ РАБОТА С МАТЧАМИ ------------------------
 
@@ -116,8 +255,10 @@ def get_matches():
 @app.route('/get_match/<int:match_id>', methods=['GET'])
 def get_match(match_id):
     match = Match.query.get(match_id)
-    if not match:
-        return jsonify({'error': 'Match not found'}), 404
+    
+    # ✅ Добавляем проверку на отсутствие матча или даты
+    if not match or not match.date_time:
+        return jsonify({'error': 'Match not found or date missing'}), 404
 
     return jsonify({
         'id': match.match_id,
@@ -130,10 +271,12 @@ def get_match(match_id):
     }), 200
 
 
+
 @app.route('/add_match', methods=['POST'])
 def add_match():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized. Please log in again.'}), 401
+    user_id = get_user_from_token()  # ✅ Проверяем токен
+    if not user_id:
+        return jsonify({'error': 'Unauthorized'}), 401
 
     try:
         if 'stadium_plan' not in request.files:
@@ -153,13 +296,14 @@ def add_match():
             match_type=data.get('match_type'),
             ticket_quantity=int(data.get('ticket_quantity')),
             ticket_price=float(data.get('ticket_price')),
-            created_by=session['user_id']  # ✅ Используем user_id из сессии
+            created_by=user_id  # ✅ Используем user_id из токена
         )
         db.session.add(new_match)
         db.session.commit()
         return jsonify({'message': 'Match added successfully!'}), 201
     except Exception as e:
         return jsonify({'error': 'Failed to add match', 'details': str(e)}), 500
+
 
 
 
@@ -185,33 +329,39 @@ def update_match():
 
 # ------------------------ Бронирование матча ------------------------
 
-# В app.py
 @app.route('/book_match', methods=['POST'])
 def book_match():
     data = request.get_json()
     user_id = data.get('user_id')
     match_id = data.get('match_id')
 
-    print(f'Received user_id: {user_id}, match_id: {match_id}')  # ✅ Лог в консоли сервера
-
     if not user_id or not match_id:
         return jsonify({'error': 'Missing user or match ID'}), 400
 
+    match = Match.query.get(match_id)
+    if not match:
+        return jsonify({'error': 'Match not found'}), 404
+
+    if match.ticket_quantity <= 0:
+        return jsonify({'error': 'No tickets available'}), 400
+
+    # Проверяем, не бронировал ли уже этот пользователь этот матч
     existing_ticket = Ticket.query.filter_by(match_id=match_id, current_owner=user_id).first()
     if existing_ticket:
-        return jsonify({'message': 'Match already booked!'}), 200
+        return jsonify({'message': 'You have already booked this match!'}), 200
 
-    new_ticket = Ticket(
-        match_id=match_id,
-        current_owner=user_id,
-        status='reserved'
-    )
+    # ✅ Уменьшаем количество билетов
+    match.ticket_quantity -= 1
+    new_ticket = Ticket(match_id=match_id, current_owner=user_id, status='reserved')
+
     db.session.add(new_ticket)
     db.session.commit()
 
     return jsonify({'message': 'Match booked successfully!'}), 201
 
 
+
+# ------------------------ ПОКАЗ ЗАБРОНИРОВАННОГО ------------------------
 @app.route('/my_matches/<int:user_id>', methods=['GET'])
 def my_matches(user_id):
     tickets = Ticket.query.filter_by(current_owner=user_id, status='reserved').all()
@@ -227,10 +377,9 @@ def my_matches(user_id):
     ]
     return jsonify(result), 200
 
-
 # ------------------------ ЗАПУСК СЕРВЕРА ------------------------
 
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=True)
+    app.run(host='127.0.0.1', port=5000, debug=True)
