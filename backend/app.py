@@ -211,7 +211,7 @@ def login():
             secure=False,       # Для локального теста
             samesite='Lax',     # Lax лучше для CORS при переходах
             path='/',           # Устанавливаем корневой путь
-            max_age=3600
+            max_age=180
         )
         print(f"Auth token set in cookie for user {user.id}")
         return response, 200
@@ -345,19 +345,43 @@ def book_match():
     if match.ticket_quantity <= 0:
         return jsonify({'error': 'No tickets available'}), 400
 
-    # Проверяем, не бронировал ли уже этот пользователь этот матч
+    # ✅ Проверяем, не бронировал ли уже этот пользователь этот матч
     existing_ticket = Ticket.query.filter_by(match_id=match_id, current_owner=user_id).first()
     if existing_ticket:
-        return jsonify({'message': 'You have already booked this match!'}), 200
+        return jsonify({'error': 'You have already booked this match!'}), 400
 
     # ✅ Уменьшаем количество билетов
     match.ticket_quantity -= 1
-    new_ticket = Ticket(match_id=match_id, current_owner=user_id, status='reserved')
 
+    new_ticket = Ticket(match_id=match_id, current_owner=user_id, status='reserved')
     db.session.add(new_ticket)
     db.session.commit()
 
     return jsonify({'message': 'Match booked successfully!'}), 201
+
+
+@app.route('/cancel_booking', methods=['POST'])
+def cancel_booking():
+    data = request.get_json()
+    user_id = data.get('user_id')
+    match_id = data.get('match_id')
+
+    if not user_id or not match_id:
+        return jsonify({'error': 'Missing user or match ID'}), 400
+
+    ticket = Ticket.query.filter_by(match_id=match_id, current_owner=user_id).first()
+    if not ticket:
+        return jsonify({'error': 'No booking found for this match'}), 404
+
+    match = Match.query.get(match_id)
+    if match:
+        match.ticket_quantity += 1  # ✅ Увеличиваем доступное количество билетов
+
+    db.session.delete(ticket)
+    db.session.commit()
+
+    return jsonify({'success': True, 'message': 'Booking cancelled successfully'}), 200
+
 
 
 

@@ -1,13 +1,10 @@
-<!-- HTML Document for My Matches Page with Comments -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- Meta settings for encoding and responsive design -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Matches</title>
   
-  <!-- Inline styles for layout and design -->
   <style>
     body {
       display: flex;
@@ -38,6 +35,20 @@
       margin-bottom: 8px;
       border-radius: 5px;
       background-color: #e7e7e7;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .cancel-button {
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .cancel-button:hover {
+      background-color: #c82333;
     }
     .back-button {
       margin-top: 20px;
@@ -51,21 +62,17 @@
   </style>
 </head>
 <body>
-  <!-- Main container displaying booked matches -->
   <div class="container">
     <h1>My Matches</h1>
     <div id="matches-list" class="matches-list"></div>
-    <!-- Back button to navigate to dashboard -->
     <button class="back-button" onclick="goBack()">Back</button>
   </div>
 
-  <!-- JavaScript for loading matches and navigation -->
   <script>
     function goBack() {
       window.location.href = 'fan-dashboard.html';
     }
 
-    // Load booked matches from server on page load
     document.addEventListener('DOMContentLoaded', function() {
       const userId = sessionStorage.getItem('userId');
       fetch(`http://127.0.0.1:5000/my_matches/${userId}`)
@@ -80,15 +87,34 @@
           matches.forEach(match => {
             const div = document.createElement('div');
             div.classList.add('match-item');
-            // ✅ Исправленная строка (добавлены backticks `)
             div.innerHTML = `
-              <strong>${match.name}</strong> - ${match.date} at ${match.stadium}
+              <span><strong>${match.name}</strong> - ${match.date} at ${match.stadium}</span>
+              <button class="cancel-button" onclick="cancelBooking(${match.id})">Cancel</button>
             `;
             list.appendChild(div);
           });
         })
         .catch(error => console.error('❌ Error loading matches:', error));
     });
+
+    function cancelBooking(matchId) {
+      const userId = sessionStorage.getItem('userId');
+      fetch(`http://127.0.0.1:5000/cancel_booking`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, match_id: matchId })
+      })
+      .then(response => response.json())
+      .then(result => {
+        if (result.success) {
+          alert('✅ Booking cancelled successfully!');
+          location.reload();
+        } else {
+          alert(`🚫 ${result.error}`);
+        }
+      })
+      .catch(error => console.error('❌ Error cancelling booking:', error));
+    }
   </script>
 </body>
 </html>
