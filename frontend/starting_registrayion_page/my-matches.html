@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Matches</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container my-matches">
+    <h1>My Matches</h1>
+    <div id="matches-list">
+      <!-- Matches will be loaded here -->
+    </div>
+
+    <div class="back-container">
+      <button class="back-button" onclick="goBack()">Back</button>
+    </div>
+  </div>
+
+  <script>
+    function goBack() {
+      window.location.href = 'organizer-dashboard.html';
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const matchesList = document.getElementById('matches-list');
+
+      fetch('http://127.0.0.1:5000/my_matches')
+        .then(response => response.json())
+        .then(data => {
+          if (data.length === 0) {
+            matchesList.innerHTML = '<p>No matches found.</p>';
+            return;
+          }
+
+          data.forEach(match => {
+            const matchItem = document.createElement('div');
+            matchItem.classList.add('match-item');
+            matchItem.innerHTML = `
+              <div class="match-date">${match.date_time}</div>
+              <div class="match-details">
+                <strong>${match.match_name}</strong> - ${match.stadium_name}
+                <br>Tickets: ${match.ticket_quantity} | Price: ₽${match.ticket_price}
+              </div>
+            `;
+            matchItem.addEventListener('click', () => {
+              window.location.href = `edit-match.html?id=${match.id}`;
+            });
+            matchesList.appendChild(matchItem);
+          });
+        })
+        .catch(error => {
+          console.error('Error loading matches:', error);
+          matchesList.innerHTML = '<p>Error loading matches. Please try again later.</p>';
+        });
+    });
+  </script>
+</body>
+</html>

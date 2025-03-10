@@ -1,0 +1,186 @@
+<!-- HTML Document for Secure Log In Page -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log In</title>
+  
+  <!-- Inline CSS for page styling -->
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+      text-align: center;
+      width: 500px;
+      position: relative;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+    }
+
+    label {
+      margin-top: 10px;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+
+    input {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      font-size: 16px;
+    }
+
+    .buttons-container {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+    }
+
+    .login-button, .login-back-button {
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      flex: 1;
+      margin: 5px;
+    }
+
+    .login-button {
+      background-color: #007bff;
+      color: white;
+    }
+    .login-button:hover {
+      background-color: #0056b3;
+    }
+
+    .login-back-button {
+      background-color: #6c757d;
+      color: white;
+    }
+    .login-back-button:hover {
+      background-color: #5a6268;
+    }
+
+    /* Стиль для сообщений об ошибках */
+    .error-message {
+      color: red;
+      font-size: 14px;
+      margin-bottom: 15px;
+    }
+  </style>
+  
+  <!-- JavaScript for Secure Login Handling -->
+  <script>
+    const BASE_URL = 'http://127.0.0.1:5000';
+
+    function handleLogoutOnUnload() {
+      navigator.sendBeacon(`${BASE_URL}/logout`);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const loginForm = document.getElementById('login-form');
+      const errorMessage = document.getElementById('error-message');
+
+      if (!loginForm) return console.error('Element with id "login-form" not found');
+
+      async function checkAuth() {
+        try {
+          const response = await fetch(`${BASE_URL}/check-auth`, {
+            method: 'GET',
+            credentials: 'include'
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (data.authenticated) {
+              sessionStorage.setItem('userId', data.user_id);
+              sessionStorage.setItem('userRole', data.role);
+              sessionStorage.setItem('userName', data.user_name || 'Fan');
+              window.location.assign('main.html');
+            }
+          }
+        } catch (error) {
+          console.warn('Auth check failed:', error);
+        }
+      }
+
+      loginForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const loginData = {
+          login: document.getElementById('login').value.trim(),
+          password: document.getElementById('password').value.trim()
+        };
+
+        try {
+          const response = await fetch(`${BASE_URL}/login`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(loginData)
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Invalid login or password');
+          }
+
+          const data = await response.json();
+          sessionStorage.setItem('userId', data.user_id);
+          sessionStorage.setItem('userRole', data.role);
+          sessionStorage.setItem('userName', data.user_name || 'Fan');
+          window.removeEventListener('beforeunload', handleLogoutOnUnload);
+          setTimeout(() => window.location.assign('main.html'), 300);
+        } catch (error) {
+          errorMessage.textContent = error.message || 'Login failed';
+        }
+      });
+
+      checkAuth();
+    });
+  </script>
+</head>
+<body>
+  <div class="container login-step2">
+    <h1>Log In</h1>
+    
+    <!-- Блок для вывода ошибок -->
+    <div id="error-message" class="error-message"></div>
+
+    <!-- Форма входа -->
+    <form id="login-form">
+      <label for="login">Enter login:</label>
+      <input type="text" id="login" name="login" placeholder="Enter login" required>
+      
+      <label for="password">Enter password:</label>
+      <input type="password" id="password" name="password" placeholder="Enter password" required>
+      
+      <div class="buttons-container">
+        <button class="login-back-button" onclick="window.history.back()">Back</button>
+        <button type="submit" class="login-button">Log in</button>
+      </div>
+    </form>
+  </div>
+</body>
+</html>

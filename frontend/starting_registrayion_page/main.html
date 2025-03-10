@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Main Page</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      width: 100vw;
+      margin: 0;
+      background-color: #f4f4f4;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 1400px;
+      height: 90vh;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .header img {
+      height: 80px; /* Увеличенный размер логотипа */
+    }
+
+    .header button {
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      padding: 15px 25px; /* Увеличенный размер кнопки */
+      cursor: pointer;
+      border-radius: 5px;
+      font-size: 18px;
+    }
+
+    h1, h2 {
+      text-align: center;
+      margin: 10px 0;
+    }
+
+    .matches-list {
+      flex-grow: 1;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 10px;
+    }
+
+    .match-item {
+      padding: 15px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background-color: #fff;
+      transition: transform 0.2s;
+    }
+
+    .match-item:hover {
+      transform: scale(1.02);
+      background-color: #f0f8ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="logo.png" alt="ArenaLink Logo">
+      <button id="dashboard-button">Profile</button>
+    </div>
+
+    <h1>Welcome to ArenaLink</h1>
+    <h2>Upcoming Matches</h2>
+
+    <div id="matches-list" class="matches-list"></div>
+  </div>
+
+  <script>
+    const BASE_URL = 'http://127.0.0.1:5000';
+
+    document.addEventListener('DOMContentLoaded', async function() {
+        console.log("🚀 Script is running...");
+        const dashboardButton = document.getElementById('dashboard-button');
+
+        if (dashboardButton) {
+            console.log("✅ Button 'dashboard-button' found!");
+
+            // 🔹 Проверяем авторизацию пользователя
+            try {
+                const authResponse = await fetch(`${BASE_URL}/check-auth`, {
+                    method: 'GET',
+                    mode: 'cors',
+                    credentials: 'include'
+                });
+                const authData = await authResponse.json();
+                console.log("🔐 Auth response:", authData);
+
+                if (!authResponse.ok || !authData.authenticated) {
+                    console.warn("🚫 Not authenticated, redirecting to login...");
+                    window.location.href = 'login-step2.html';
+                    return;
+                }
+
+                // 🔹 Сохраняем данные в sessionStorage
+                sessionStorage.setItem('userRole', authData.role);
+                sessionStorage.setItem('userId', authData.user_id);
+                console.log("✅ Saved to sessionStorage:", authData.role, authData.user_id);
+
+            } catch (error) {
+                console.error("❌ Auth check failed:", error);
+                window.location.href = 'login-step2.html';
+            }
+
+            // 🔹 Назначаем обработчик на кнопку "Profile"
+            dashboardButton.onclick = function() {
+                console.log("🔹 Profile button clicked!");
+                const userRole = sessionStorage.getItem('userRole');
+                console.log("📌 Current userRole:", userRole);
+
+                if (!userRole) {
+                    console.warn("🚫 Access denied: No role found, redirecting to login...");
+                    window.location.href = 'login-step2.html';
+                    return;
+                }
+
+                if (userRole === 'fan') {
+                    console.log("✅ Redirecting to fan-dashboard.html");
+                    window.location.href = 'fan-dashboard.html';
+                } else if (userRole === 'organizer') {
+                    console.log("✅ Redirecting to organizer-dashboard.html");
+                    window.location.href = 'organizer-dashboard.html';
+                } else {
+                    console.warn("🚫 Unknown role, redirecting to login...");
+                    window.location.href = 'login-step2.html';
+                }
+            };
+        } else {
+            console.error("❌ Button 'dashboard-button' NOT found!");
+        }
+
+        // 🔹 Загружаем список матчей
+        try {
+            const matchesList = document.getElementById('matches-list');
+            const matchesResponse = await fetch(`${BASE_URL}/matches`, {
+                method: 'GET',
+                mode: 'cors',
+                credentials: 'include'
+            });
+            const matches = await matchesResponse.json();
+
+            if (!matches.length) {
+                matchesList.innerHTML = '<p>⚠️ No matches available</p>';
+                return;
+            }
+
+            matches.forEach(match => {
+                const div = document.createElement('div');
+                div.classList.add('match-item');
+                div.innerHTML = `
+                  <a href="match-details.html?id=${match.id}" class="match-link">
+                    <strong>${match.name}</strong> - ${match.date} at ${match.stadium}
+                  </a>
+                `;
+                matchesList.appendChild(div);
+            });
+
+        } catch (error) {
+            console.error("❌ Error loading matches:", error);
+            document.getElementById('matches-list').innerHTML = '<p>🚫 Failed to load matches.</p>';
+        }
+    });
+  </script>
+
+</body>
+</html>
