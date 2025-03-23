@@ -1,0 +1,152 @@
+<!-- HTML document for Organizer Registration -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Meta settings for character encoding and viewport responsiveness -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Organizer Registration</title>
+  <style>
+    /* Page layout styles */
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    
+    /* Container for form elements */
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+      width: 500px;
+    }
+    
+    /* Headings and labels */
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+    
+    /* Input fields and dropdown styles */
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    
+    /* Button layout */
+    .form-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    /* Button styles */
+    button {
+      padding: 12px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .register-button {
+      background-color: #007bff;
+      color: white;
+    }
+    .register-button:hover {
+      background-color: #0056b3;
+    }
+    .back-button {
+      background-color: #6c757d;
+      color: white;
+    }
+    .back-button:hover {
+      background-color: #5a6268;
+    }
+  </style>
+</head>
+<body>
+  <!-- Organizer registration form -->
+  <div class="container organizer-page">
+    <h1>Organizer Registration</h1>
+    <form id="organizer-registration-form">
+      <!-- Input fields for organizer details -->
+      <label for="login">Enter login:</label>
+      <div style="display: flex; gap: 5px;">
+        <input type="text" id="login" name="login" placeholder="Enter your login" required>
+        <select id="login-type" name="login-type">
+          <option value="email">Email</option>
+          <option value="vk">VK</option>
+          <option value="telegram">Telegram</option>
+        </select>
+      </div>
+      
+      <label for="password">Create password:</label>
+      <input type="password" id="password" placeholder="Enter your password" required>
+
+      <label for="organization">Organization name:</label>
+      <input type="text" id="organization" placeholder="Enter organization name" required>
+
+      <label for="contact">Contact information:</label>
+      <input type="text" id="contact" placeholder="Enter contact details" required>
+
+      <label for="documents">Upload file:</label>
+      <input type="file" id="documents" name="documents" required>
+
+      <!-- Submission and navigation buttons -->
+      <div class="form-buttons">
+        <button type="submit" class="register-button">Register</button>
+        <button type="button" class="back-button" onclick="window.history.back()">Back</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    // JavaScript for handling form submission
+    const organizerForm = document.getElementById('organizer-registration-form');
+    if (organizerForm) {
+      organizerForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        
+        // Create FormData object and append input values
+        const fileInput = document.getElementById('documents');
+        const formData = new FormData();
+        formData.append('login', document.getElementById('login').value);
+        formData.append('password', document.getElementById('password').value);
+        formData.append('organization', document.getElementById('organization').value);
+        formData.append('contact', document.getElementById('contact').value);
+        formData.append('documents', fileInput.files[0]);
+
+        // Send data to backend API
+        fetch('http://127.0.0.1:5000/register_organizer', {
+          method: 'POST',
+          body: formData,
+        })
+        .then(response => response.json())
+        .then(data => {
+          alert('Organizer registration successful!');
+          window.location.href = 'login.html';
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert(error.message);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
