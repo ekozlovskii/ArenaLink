@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Main Page</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #006400;
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 1200px;
+      height: 90vh;
+      background: white;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+    }
+
+    .header img {
+      height: 80px;
+      border: 3px solid #004d00;
+      border-radius: 8px;
+      margin-right: 20px;
+    }
+
+    .header-title {
+      font-size: 1.6em;
+      color: #004d00;
+      font-weight: bold;
+      line-height: 1.2;
+    }
+
+    .header button {
+      background: white;
+      color: #004d00;
+      border: 2px solid #004d00;
+      padding: 12px 20px;
+      font-size: 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: 0.3s;
+      font-weight: bold;
+    }
+
+    .header button:hover {
+      background: #004d00;
+      color: white;
+      transform: scale(1.05);
+    }
+
+    .filters-bar {
+      display: flex;
+      align-items: center;
+      margin: 15px 0;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .filters-bar input {
+      padding: 8px;
+      font-size: 14px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    #filters-panel {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .match-item {
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 10px;
+      background: white;
+      transition: transform 0.2s;
+      color: #004d00;
+      font-weight: bold;
+      text-align: center;
+      cursor: pointer;
+      border: 2px solid #004d00;
+      position: relative;
+    }
+
+    .match-item::before {
+      content: "⚽";
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 20px;
+    }
+
+    .match-item:hover {
+      transform: scale(1.03);
+      background: #f0f0f0;
+    }
+
+    .matches-list {
+      flex-grow: 1;
+      overflow-y: auto;
+      border: 2px solid #1b5e20;
+      border-radius: 10px;
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.9);
+      background-image: url('football2.jpeg');
+      background-size: cover;
+      background-position: center;
+      margin-bottom: 20px;
+    }
+
+    .filters-toggle {
+      background: white;
+      border: 2px solid #004d00;
+      padding: 10px 20px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 10px;
+      cursor: pointer;
+      color: #004d00;
+      transition: 0.3s;
+    }
+
+    .filters-toggle:hover {
+      background: #004d00;
+      color: white;
+    }
+
+    .filter-buttons {
+      display: flex;
+      gap: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-left">
+        <img src="logo.png" alt="ArenaLink Logo"/>
+        <div class="header-title">
+          Welcome to ArenaLink<br/>
+          Upcoming Matches
+        </div>
+      </div>
+      <button id="dashboard-button">Profile</button>
+    </div>
+
+    <div class="filters-bar">
+      <input type="text" id="searchInput" placeholder="Search match or stadium name" style="flex-grow: 1; max-width: 600px;" />
+      <button class="filters-toggle" onclick="toggleFilters()">Filters</button>
+    </div>
+
+    <div id="filters-panel">
+      <input type="number" id="minPriceInput" placeholder="Min price"/>
+      <input type="number" id="maxPriceInput" placeholder="Max price"/>
+      <input type="date" id="afterDateInput" />
+      <input type="date" id="beforeDateInput" />
+      <div class="filter-buttons">
+        <button class="filters-toggle" onclick="loadMatches()">Apply Filters</button>
+        <button class="filters-toggle" onclick="resetFilters()">Reset</button>
+      </div>
+    </div>
+
+    <div id="matches-list" class="matches-list"></div>
+  </div>
+
+  <script>
+    const BASE_URL = 'http://127.0.0.1:5000';
+
+    function toggleFilters() {
+      const panel = document.getElementById('filters-panel');
+      panel.style.display = panel.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    function resetFilters() {
+      document.getElementById('minPriceInput').value = '';
+      document.getElementById('maxPriceInput').value = '';
+      document.getElementById('afterDateInput').value = '';
+      document.getElementById('beforeDateInput').value = '';
+      loadMatches();
+    }
+
+    async function loadMatches() {
+      const query = new URLSearchParams();
+
+      const name = document.getElementById('searchInput').value;
+      if (name) query.append('name', name);
+
+      const min = document.getElementById('minPriceInput').value;
+      const max = document.getElementById('maxPriceInput').value;
+      const after = document.getElementById('afterDateInput').value;
+      const before = document.getElementById('beforeDateInput').value;
+
+      if (min) query.append('min_price', min);
+      if (max) query.append('max_price', max);
+      if (after) query.append('after_date', after);
+      if (before) query.append('before_date', before);
+
+      const url = `${BASE_URL}/matches?${query.toString()}`;
+      try {
+        const res = await fetch(url, { credentials: 'include' });
+        const matches = await res.json();
+        const list = document.getElementById('matches-list');
+        list.innerHTML = '';
+
+        if (matches.length === 0) {
+          list.innerHTML = '<p style="color:#004d00; text-align:center;">No matches found</p>';
+          return;
+        }
+
+        matches.forEach(match => {
+          const div = document.createElement('div');
+          div.classList.add('match-item');
+          div.innerHTML = `<strong>${match.name}</strong> - ${match.date} at ${match.stadium}`;
+          div.onclick = () => window.location.href = `match-details.html?id=${match.id}`;
+          list.appendChild(div);
+        });
+      } catch (err) {
+        console.error('Failed to fetch matches:', err);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const role = sessionStorage.getItem('userRole');
+      const btn = document.getElementById('dashboard-button');
+
+      if (role === 'fan') {
+        btn.onclick = () => window.location.href = 'fan-dashboard.html';
+      } else if (role === 'organizer') {
+        btn.onclick = () => window.location.href = 'organizer-dashboard.html';
+      } else {
+        btn.disabled = true;
+        btn.innerText = 'Login required';
+      }
+
+      document.getElementById('searchInput').addEventListener('input', loadMatches);
+      loadMatches();
+    });
+  </script>
+</body>
+</html>

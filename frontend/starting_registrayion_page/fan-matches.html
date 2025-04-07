@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Matches</title>
+  
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f4f4f4;
+    }
+    .container {
+      width: 90%;
+      max-width: 800px;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      text-align: center;
+    }
+    h1 { margin-bottom: 20px; }
+    .matches-list {
+      overflow-y: auto;
+      max-height: 70vh;
+      border: 1px solid #ccc;
+      padding: 10px;
+    }
+    .match-item {
+      padding: 10px;
+      margin-bottom: 8px;
+      border-radius: 5px;
+      background-color: #e7e7e7;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .cancel-button {
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .cancel-button:hover {
+      background-color: #c82333;
+    }
+    .back-button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #6c757d;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>My Matches</h1>
+    <div id="matches-list" class="matches-list"></div>
+    <button class="back-button" onclick="goBack()">Back</button>
+  </div>
+
+  <script>
+    function goBack() {
+      window.location.href = 'fan-dashboard.html';
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const userId = sessionStorage.getItem('userId');
+      fetch(`http://127.0.0.1:5000/my_matches/${userId}`)
+        .then(response => response.json())
+        .then(matches => {
+          const list = document.getElementById('matches-list');
+          if (!matches.length) {
+            list.innerHTML = '<p>No matches booked yet.</p>';
+            return;
+          }
+
+          matches.forEach(match => {
+            const div = document.createElement('div');
+            div.classList.add('match-item');
+            div.innerHTML = `
+              <span><strong>${match.name}</strong> - ${match.date} at ${match.stadium}</span>
+              <button class="cancel-button" onclick="cancelBooking(${match.id})">Cancel</button>
+            `;
+            list.appendChild(div);
+          });
+        })
+        .catch(error => console.error('❌ Error loading matches:', error));
+    });
+
+    function cancelBooking(matchId) {
+      const userId = sessionStorage.getItem('userId');
+      fetch(`http://127.0.0.1:5000/cancel_booking`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, match_id: matchId })
+      })
+      .then(response => response.json())
+      .then(result => {
+        if (result.success) {
+          alert('✅ Booking cancelled successfully!');
+          location.reload();
+        } else {
+          alert(`🚫 ${result.error}`);
+        }
+      })
+      .catch(error => console.error('❌ Error cancelling booking:', error));
+    }
+  </script>
+</body>
+</html>
