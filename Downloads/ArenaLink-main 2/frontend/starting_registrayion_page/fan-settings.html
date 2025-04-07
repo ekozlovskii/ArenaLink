@@ -1,0 +1,42 @@
+<!-- HTML Document for Fan Settings Page with Comments -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Meta settings for character encoding and mobile responsiveness -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fan Settings</title>
+  
+  <!-- Linking external stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Main container for settings page -->
+  <div class="container fan-settings">
+    <!-- Page title -->
+    <h1>Settings</h1>
+
+    <!-- Input for fan's name with an editable icon -->
+    <label for="fan-name">Your name</label>
+    <div class="input-group">
+      <input type="text" id="fan-name" placeholder="Loading...">
+      <img src="edit-icon.png" alt="Edit" class="edit-icon">
+    </div>
+
+    <!-- Password change section -->
+    <label for="change-password">Change password</label>
+    <input type="password" id="change-password" placeholder="Enter new password">
+
+    <!-- Notification toggle -->
+    <label for="notifications">Enable/Disable Notifications</label>
+    <input type="checkbox" id="notifications">
+    
+    <!-- Save and Back buttons -->
+    <button id="save-button" class="save-button">Save</button>
+    <button class="back-button" onclick="window.history.back()">Back</button>
+  </div>
+
+  <!-- JavaScript file inclusion -->
+  <script src="script.js"></script>
+</body>
+</html>

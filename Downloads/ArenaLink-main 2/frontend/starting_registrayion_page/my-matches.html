@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Matches</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container my-matches">
+    <h1>My Matches</h1>
+    <div id="matches-list">
+      <!-- Matches will be loaded here -->
+    </div>
+
+    <div class="back-container">
+      <button class="back-button" onclick="goBack()">Back</button>
+    </div>
+  </div>
+
+  <script>
+  function goBack() {
+    window.location.href = 'organizer-dashboard.html';
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const matchesList = document.getElementById('matches-list');
+
+    fetch('http://127.0.0.1:5000/organizer/matches', {
+      credentials: 'include'
+    })
+      .then(response => {
+        if (!response.ok) throw new Error('Failed to load matches');
+        return response.json();
+      })
+      .then(data => {
+        if (data.length === 0) {
+          matchesList.innerHTML = '<p>No matches found.</p>';
+          return;
+        }
+
+        data.forEach(match => {
+          const matchItem = document.createElement('div');
+          matchItem.classList.add('match-item');
+          matchItem.innerHTML = `
+            <div class="match-date">${match.date_time}</div>
+            <div class="match-details">
+              <strong>${match.match_name}</strong> — ${match.stadium_name}<br>
+              Tickets: ${match.ticket_quantity} | Price: ₽${match.ticket_price}
+            </div>
+            <div class="match-actions">
+              <button onclick="editMatch(${match.id})" class="edit-button">✏️ Edit</button>
+              <button onclick="generateReport(${match.id})" class="report-button">📩 Отчет на почту</button>
+            </div>
+          `;
+          matchesList.appendChild(matchItem);
+        });
+      })
+      .catch(error => {
+        console.error('Error loading matches:', error);
+        matchesList.innerHTML = '<p>Error loading matches. Please try again later.</p>';
+      });
+  });
+
+  function editMatch(id) {
+    window.location.href = `edit-match.html?id=${id}`;
+  }
+
+  function generateReport() {
+    const login = sessionStorage.getItem('userLogin');
+    fetch(`http://127.0.0.1:5000/send_report_by_login/${login}`, {
+      method: 'POST',
+      credentials: 'include'
+    })
+    .then(response => {
+      if (!response.ok) throw new Error('Failed to send report');
+      return response.json();
+    })
+    .then(data => {
+      alert(data.message || 'Отчет отправлен!');
+    })
+    .catch(error => {
+      alert('Не удалось отправить отчет');
+      console.error(error);
+    });
+  }
+</script>
+</body>
+</html>

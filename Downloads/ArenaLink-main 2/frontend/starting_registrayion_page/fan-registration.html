@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Meta settings for encoding and viewport adjustment -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fan Registration</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f4f4f4;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      width: 400px;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      text-align: left;
+      margin: 10px 0 5px;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .form-buttons {
+      display: flex;
+      justify-content: space-between;
+    }
+    .register-button {
+      width: 48%;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      padding: 10px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    .back-button {
+      width: 48%;
+      background-color: #6c757d;
+      color: white;
+      border: none;
+      padding: 10px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Main container for registration form -->
+  <div class="container">
+    <h1>Fan Registration</h1>
+
+    <!-- Registration form -->
+    <form id="fan-registration-form">
+      <!-- Name input -->
+      <label for="name">Enter your name:</label>
+      <input type="text" id="name" placeholder="Enter your full name" required>
+
+      <!-- Email input (optional) -->
+      <label for="email">Enter your email (optional):</label>
+      <input type="email" id="email" placeholder="Enter your email">
+
+      <!-- Login input -->
+      <label for="login">Enter login*:</label>
+      <div style="display: flex; gap: 5px;">
+        <input type="text" id="login" placeholder="Enter your login" required>
+        <select id="login-type">
+          <option value="email">Email</option>
+          <option value="vk">VK</option>
+          <option value="telegram">Telegram</option>
+        </select>
+      </div>
+
+      <!-- Password input -->
+      <label for="password">Create password*:</label>
+      <input type="password" id="password" placeholder="Enter your password" required>
+
+      <!-- Form buttons -->
+      <div class="form-buttons">
+        <button type="submit" class="register-button">Register</button>
+        <button type="button" class="back-button" onclick="window.history.back()">Back</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- JavaScript for form handling -->
+  <script>
+    const fanForm = document.getElementById('fan-registration-form');
+
+    if (fanForm) {
+      fanForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        // Собираем данные из формы
+        const data = {
+          login: document.getElementById('login').value,
+          name: document.getElementById('name').value,
+          password: document.getElementById('password').value,
+          email: document.getElementById('email').value || null  // Если email пустой, отправляем null
+        };
+
+        fetch('http://127.0.0.1:5000/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.error) {
+            throw new Error(data.error);
+          }
+          alert('Fan registration successful!');
+          window.location.href = 'login.html';
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert(error.message);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
