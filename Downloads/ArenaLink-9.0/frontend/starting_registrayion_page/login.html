@@ -1,0 +1,111 @@
+<!-- HTML Document for Registration Page with Comments -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Meta settings for character encoding and mobile responsiveness -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registration</title>
+  
+  <!-- Inline CSS for page styling -->
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #006400 url('stadium.png') no-repeat center center;
+      background-size: cover;
+      font-family: Arial, sans-serif;
+    }
+  
+    .registration-container {
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      width: 500px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      text-align: center;
+    }
+  
+    .registration-container img {
+      height: 100px;
+      margin-bottom: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0, 100, 0, 0.3);
+    }
+  
+    .registration-container h1 {
+      color: #004d00;
+      margin-bottom: 30px;
+    }
+  
+    .buttons {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 25px;
+    }
+  
+    .role-button {
+      flex: 1;
+      min-width: 150px;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: bold;
+      border: 2px solid #004d00;
+      border-radius: 10px;
+      background: white;
+      color: #004d00;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+  
+    .role-button:hover {
+      background: #004d00;
+      color: white;
+      transform: scale(1.03);
+    }
+  
+    .registration-back-button {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      border: 2px solid #6c757d;
+      border-radius: 10px;
+      background: white;
+      color: #6c757d;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+  
+    .registration-back-button:hover {
+      background: #6c757d;
+      color: white;
+      transform: scale(1.03);
+    }
+  </style>  
+</head>
+<body>
+  <div class="registration-container">
+    <img src="logo.png" alt="ArenaLink Logo" />
+    <h1>Registration</h1>
+
+    <div class="buttons">
+      <button class="role-button" onclick="window.location.href='fan-registration.html'">Fan</button>
+      <button class="role-button" onclick="window.location.href='organizer-page.html'">Organizer</button>
+    </div>
+
+    <button class="registration-back-button" onclick="window.history.back()">Back</button>
+  </div>
+  <script>
+    console.log('Registration page loaded.');
+  </script>
+</body>
+</html>
