@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fan Personal Account</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      width: 100vw;
+      background: #006400 url('stadium.png') no-repeat center center;
+      background-size: cover;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      width: 400px;
+      text-align: center;
+    }
+
+    h1 {
+      color: #004d00;
+      margin-bottom: 10px;
+    }
+
+    #user-name {
+      font-size: 24px;
+      font-weight: bold;
+      color: #004d00;
+      margin-bottom: 30px;
+    }
+
+    .dashboard-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .dashboard-buttons button {
+      flex: 1;
+      padding: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: 0.3s;
+      border: 2px solid;
+    }
+
+    .fan-button {
+      background: white;
+      color: #004d00;
+      border-color: #004d00;
+    }
+
+    .fan-button:hover {
+      background: #004d00;
+      color: white;
+    }
+
+    .logout-button {
+      background: white;
+      color: #dc3545;
+      border-color: #dc3545;
+    }
+
+    .logout-button:hover {
+      background: #dc3545;
+      color: white;
+    }
+
+    .back-button {
+      background: white;
+      color: #6c757d;
+      border-color: #6c757d;
+    }
+
+    .back-button:hover {
+      background: #6c757d;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Personal Account</h1>
+  <div id="user-name">Loading...</div>
+
+  <div class="dashboard-buttons">
+    <button class="fan-button" onclick="window.location.href='fan-matches.html'">My Matches</button>
+    <button class="fan-button" onclick="window.location.href='fan-tickets.html'">My Tickets</button>
+    <button class="fan-button" onclick="window.location.href='fan-settings.html'">Settings</button>
+    <button class="logout-button" onclick="logout()">Logout</button>
+    <button class="back-button" onclick="window.location.href='main.html'">Back to Main</button>
+  </div>
+</div>
+
+<script>
+  const BASE_URL = 'http://127.0.0.1:5000';
+
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+      const userName = sessionStorage.getItem('userName');
+      const userRole = sessionStorage.getItem('userRole');
+      const userId = sessionStorage.getItem('userId');
+
+      if (userName && userRole === 'fan') {
+        document.getElementById('user-name').innerText = userName;
+      } else {
+        alert('🚫 Access denied: Unknown role.');
+        window.location.href = 'login-step2.html';
+      }
+    }, 200);
+  });
+
+  function logout() {
+    fetch(`${BASE_URL}/logout`, {
+      method: 'POST',
+      credentials: 'include'
+    })
+    .then(response => {
+      if (response.ok) {
+        sessionStorage.clear();
+        window.location.href = 'main_logit_page.html';
+      } else {
+        alert("🚫 Logout failed. Try again.");
+      }
+    })
+    .catch(error => console.error('Logout failed:', error));
+  }
+</script>
+
+</body>
+</html>

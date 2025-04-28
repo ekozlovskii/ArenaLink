@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Match</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #006400 url('stadium.png') no-repeat center center;
+      background-size: cover;
+    }
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      width: 400px;
+      text-align: center;
+    }
+    h1 {
+      color: #004d00;
+      margin-bottom: 30px;
+    }
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      color: #004d00;
+      font-weight: bold;
+      text-align: left;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #004d00;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      box-sizing: border-box;
+    }
+    .form-buttons {
+      display: flex;
+      justify-content: space-between;
+    }
+    .save-button, .cancel-button {
+      flex: 1;
+      padding: 10px 15px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .save-button {
+      background: white;
+      color: #004d00;
+      border: 2px solid #004d00;
+      margin-right: 10px;
+    }
+    .save-button:hover {
+      background: #004d00;
+      color: white;
+    }
+    .cancel-button {
+      background: white;
+      color: #6c757d;
+      border: 2px solid #6c757d;
+    }
+    .cancel-button:hover {
+      background: #6c757d;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Add Match</h1>
+    <form id="add-match-form" enctype="multipart/form-data">
+      <label for="match_name">Match Name:</label>
+      <input type="text" id="match_name" name="match_name" required>
+
+      <label for="date_time">Date and Time:</label>
+      <input type="datetime-local" id="date_time" name="date_time" required>
+
+      <label for="stadium_name">Stadium Name:</label>
+      <input type="text" id="stadium_name" name="stadium_name" required>
+
+      <label for="match_type">Match Type:</label>
+      <select id="match_type" name="match_type" required>
+        <option value="friendly">Friendly</option>
+        <option value="tournament">Tournament</option>
+      </select>
+
+      <label for="ticket_quantity">Ticket Quantity:</label>
+      <input type="number" id="ticket_quantity" name="ticket_quantity" required>
+
+      <label for="ticket_price">Ticket Price (₽):</label>
+      <input type="number" id="ticket_price" name="ticket_price" step="0.01" required>
+
+      <label for="stadium_plan">Upload Stadium Plan (required):</label>
+      <input type="file" id="stadium_plan" name="stadium_plan" required>
+
+      <div class="form-buttons">
+        <button type="submit" class="save-button">Save</button>
+        <button type="button" class="cancel-button" onclick="window.history.back()">Cancel</button>
+      </div>
+    </form>
+  </div>
+  
+  <script>
+    document.getElementById('add-match-form').addEventListener('submit', function(event) {
+      event.preventDefault();
+
+      const formData = new FormData(event.target);
+
+      const stadiumPlanInput = document.getElementById('stadium_plan');
+      if (!stadiumPlanInput.files.length) {
+          alert("❌ Please upload a stadium plan!");
+          return;
+      }
+
+      fetch('http://127.0.0.1:5000/add_match', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.error) {
+          alert(`Error: ${data.error}`);
+        } else {
+          alert(data.message);
+          window.location.href = 'organizer-dashboard.html';
+        }
+      })
+      .catch(error => {
+        console.error('❌ Error:', error);
+        alert("Failed to add match. Please try again.");
+      });
+    });
+  </script>  
+</body>
+</html>

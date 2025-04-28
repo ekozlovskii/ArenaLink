@@ -1,0 +1,183 @@
+<!-- HTML Document for Secure Log In Page -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log In</title>
+  
+  <!-- Inline CSS for page styling -->
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #006400 url('stadium.png') no-repeat center center;
+      background-size: cover;
+      font-family: Arial, sans-serif;
+    }
+  
+    .login-container {
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      width: 500px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      text-align: center;
+    }
+  
+    .login-container h1 {
+      color: #004d00;
+      margin-bottom: 25px;
+    }
+  
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      text-align: left;
+    }
+  
+    label {
+      font-weight: bold;
+      color: #004d00;
+    }
+  
+    input {
+      padding: 12px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+  
+    .buttons-container {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 15px;
+    }
+  
+    .login-button,
+    .login-back-button {
+      flex: 1;
+      margin: 0 5px;
+      padding: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      border: 2px solid #004d00;
+      border-radius: 10px;
+      background: white;
+      color: #004d00;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+  
+    .login-button:hover,
+    .login-back-button:hover {
+      background: #004d00;
+      color: white;
+      transform: scale(1.03);
+    }
+  
+    .error-message {
+      color: red;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+  </style>
+  
+  
+  <!-- JavaScript for Secure Login Handling -->
+  <script>
+    const BASE_URL = 'http://127.0.0.1:5000';
+
+    function handleLogoutOnUnload() {
+      navigator.sendBeacon(`${BASE_URL}/logout`);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const loginForm = document.getElementById('login-form');
+      const errorMessage = document.getElementById('error-message');
+
+      if (!loginForm) return console.error('Element with id "login-form" not found');
+
+      async function checkAuth() {
+        try {
+          const response = await fetch(`${BASE_URL}/check-auth`, {
+            method: 'GET',
+            credentials: 'include'
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (data.authenticated) {
+              sessionStorage.setItem('userId', data.user_id);
+              sessionStorage.setItem('userRole', data.role);
+              sessionStorage.setItem('userName', data.user_name || 'Fan');
+              window.location.assign('main.html');
+            }
+          }
+        } catch (error) {
+          console.warn('Auth check failed:', error);
+        }
+      }
+
+      loginForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const loginData = {
+          login: document.getElementById('login').value.trim(),
+          password: document.getElementById('password').value.trim()
+        };
+
+        try {
+          const response = await fetch(`${BASE_URL}/login`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(loginData)
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Invalid login or password');
+          }
+
+          const data = await response.json();
+          sessionStorage.setItem('userId', data.user_id);
+          sessionStorage.setItem('userRole', data.role);
+          sessionStorage.setItem('userName', data.user_name || 'Fan');
+          sessionStorage.setItem('userLogin', loginData.login); // ✅ ВОТ ЭТО ДОБАВЬ
+          window.removeEventListener('beforeunload', handleLogoutOnUnload);
+          setTimeout(() => window.location.assign('main.html'), 300);
+        } catch (error) {
+          errorMessage.textContent = error.message || 'Login failed';
+        }
+      });
+
+      checkAuth();
+    });
+  </script>
+</head>
+<body>
+  <div class="login-container">
+    <h1>Log In</h1>
+
+    <div id="error-message" class="error-message"></div>
+
+    <form id="login-form">
+      <label for="login">Enter login:</label>
+      <input type="text" id="login" name="login" placeholder="Enter login" required>
+
+      <label for="password">Enter password:</label>
+      <input type="password" id="password" name="password" placeholder="Enter password" required>
+
+      <div class="buttons-container">
+        <button type="button" class="login-back-button" onclick="window.history.back()">Back</button>
+        <button type="submit" class="login-button">Log In</button>
+      </div>
+    </form>
+  </div>
+</body>
+</html>
