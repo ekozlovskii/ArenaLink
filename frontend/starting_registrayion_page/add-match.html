@@ -103,8 +103,11 @@
       <label for="ticket_price">Ticket Price (₽):</label>
       <input type="number" id="ticket_price" name="ticket_price" step="0.01" required>
 
-      <label for="stadium_plan">Upload Stadium Plan (required):</label>
-      <input type="file" id="stadium_plan" name="stadium_plan" required>
+      <label for="stadium_plan">Upload Stadium Plan (CSV file):</label>
+      <input type="file" id="stadium_plan" name="stadium_plan" accept=".csv">
+
+      <label for="stadium_image">Upload Stadium Image (PNG or JPG):</label>
+      <input type="file" id="stadium_image" name="stadium_image" accept=".png,.jpg,.jpeg">
 
       <div class="form-buttons">
         <button type="submit" class="save-button">Save</button>
@@ -116,13 +119,19 @@
   <script>
     document.getElementById('add-match-form').addEventListener('submit', function(event) {
       event.preventDefault();
+      const form = event.target;
+      const formData = new FormData(form);
 
-      const formData = new FormData(event.target);
+      const planFile = document.getElementById('stadium_plan').files[0];
+      const imageFile = document.getElementById('stadium_image').files[0];
 
-      const stadiumPlanInput = document.getElementById('stadium_plan');
-      if (!stadiumPlanInput.files.length) {
-          alert("❌ Please upload a stadium plan!");
-          return;
+      if (planFile && !planFile.name.endsWith('.csv')) {
+        alert("❌ Stadium plan must be a CSV file.");
+        return;
+      }
+      if (imageFile && !/\.(png|jpg|jpeg)$/i.test(imageFile.name)) {
+        alert("❌ Stadium image must be a PNG or JPG file.");
+        return;
       }
 
       fetch('http://127.0.0.1:5000/add_match', {

@@ -110,7 +110,6 @@
     <div class="dashboard-buttons">
       <button class="organizer-button" onclick="window.location.href='my-matches.html'">My Matches</button>
       <button class="organizer-button" onclick="addMatch()">Add Match</button>
-      <button class="organizer-button" onclick="manageTickets()">Manage Tickets</button>
       <button class="organizer-button" onclick="window.location.href='settings-orgonizer.html'">Settings</button>
       <button class="logout-button" onclick="logout()">Logout</button> <!-- ✅ Перенес внутрь dashboard-buttons -->
     </div>
@@ -133,10 +132,6 @@
 
     function addMatch() {
       window.location.href = 'add-match.html';
-    }
-
-    function manageTickets() {
-      alert('Redirecting to Manage Tickets page...');
     }
 
     function logout() {

@@ -60,18 +60,20 @@ class Match(db.Model):
     __tablename__ = 'match'
 
     match_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    match_name = db.Column(db.String(200), nullable=False)  # Название матча
-    date_time = db.Column(db.DateTime, nullable=False)  # Дата и время
-    stadium_name = db.Column(db.String(200), nullable=False)  # Название стадиона
-    stadium_plan = db.Column(db.String(255), nullable=False)  # Путь к загруженной схеме стадиона
-    match_type = db.Column(db.Enum('friendly', 'tournament', name='match_type_enum'), nullable=False)  # Тип матча
-    ticket_quantity = db.Column(db.Integer, nullable=False)  # Количество билетов
-    ticket_price = db.Column(db.Numeric(10, 2), nullable=False)  # Цена билетов
-    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # ID организатора
-    date_create = db.Column(db.DateTime, default=datetime.utcnow)  # Дата создания
-    date_update = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)  # Дата обновления
+    match_name = db.Column(db.String(200), nullable=False)
+    date_time = db.Column(db.DateTime, nullable=False)
+    stadium_name = db.Column(db.String(200), nullable=False)
+    stadium_plan = db.Column(db.String(255), nullable=True)  # ✅ CSV файл
+    stadium_image = db.Column(db.String(255), nullable=True)  # ✅ PNG/JPG файл
+    match_type = db.Column(db.Enum('friendly', 'tournament', name='match_type_enum'), nullable=False)
+    ticket_quantity = db.Column(db.Integer, nullable=False)
+    ticket_price = db.Column(db.Numeric(10, 2), nullable=False)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    date_create = db.Column(db.DateTime, default=datetime.utcnow)
+    date_update = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     created_by_user = db.relationship('User', backref=db.backref('matches', lazy=True))
+
 
     def __repr__(self):
         return f'<Match {self.match_name} at {self.stadium_name}>'

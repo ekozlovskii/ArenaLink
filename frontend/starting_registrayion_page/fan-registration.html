@@ -39,18 +39,13 @@
       font-weight: bold;
     }
 
-    input, select {
+    input {
       width: 100%;
       padding: 10px;
       border: 2px solid #004d00;
       border-radius: 8px;
       margin-bottom: 15px;
       box-sizing: border-box;
-    }
-
-    .input-group {
-      display: flex;
-      gap: 10px;
     }
 
     .form-buttons {
@@ -99,18 +94,11 @@
       <label for="name">Name:</label>
       <input type="text" id="name" placeholder="Enter your name" required />
 
-      <label for="email">Email (optional):</label>
-      <input type="email" id="email" placeholder="Enter your email" />
-
       <label for="login">Login:</label>
-      <div class="input-group">
-        <input type="text" id="login" placeholder="Login" required />
-        <select id="login-type">
-          <option value="email">Email</option>
-          <option value="vk">VK</option>
-          <option value="telegram">Telegram</option>
-        </select>
-      </div>
+      <input type="text" id="login" placeholder="Enter your login" required />
+
+      <label for="email">Email:</label>
+      <input type="email" id="email" placeholder="Enter your email" />
 
       <label for="password">Password:</label>
       <input type="password" id="password" placeholder="Enter your password" required />

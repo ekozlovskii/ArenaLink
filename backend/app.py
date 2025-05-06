@@ -365,42 +365,55 @@ def get_match(match_id):
         'stadium': match.stadium_name,
         'match_type': match.match_type,
         'ticket_quantity': match.ticket_quantity,
-        'ticket_price': str(match.ticket_price)
+        'ticket_price': str(match.ticket_price),
+        'created_by': match.created_by
     }), 200
 
 
 
 @app.route('/add_match', methods=['POST'])
 def add_match():
-    user_id = get_user_from_token()  # ✅ Проверяем токен
+    user_id = get_user_from_token()
     if not user_id:
         return jsonify({'error': 'Unauthorized'}), 401
 
     try:
-        if 'stadium_plan' not in request.files:
-            return jsonify({'error': 'Stadium plan is required'}), 400
-
-        file = request.files['stadium_plan']
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-        file.save(file_path)
-
         data = request.form
+        stadium_plan_path = None
+        stadium_image_path = None
+
+        # Optional CSV file
+        if 'stadium_plan' in request.files:
+            plan_file = request.files['stadium_plan']
+            if plan_file and plan_file.filename.endswith('.csv'):
+                stadium_plan_path = os.path.join(app.config['UPLOAD_FOLDER'], plan_file.filename)
+                plan_file.save(stadium_plan_path)
+
+        # Optional image file
+        if 'stadium_image' in request.files:
+            image_file = request.files['stadium_image']
+            if image_file and image_file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+                stadium_image_path = os.path.join(app.config['UPLOAD_FOLDER'], image_file.filename)
+                image_file.save(stadium_image_path)
 
         new_match = Match(
             match_name=data.get('match_name'),
             date_time=datetime.strptime(data.get('date_time'), '%Y-%m-%dT%H:%M'),
             stadium_name=data.get('stadium_name'),
-            stadium_plan=file_path,
+            stadium_plan=stadium_plan_path,
+            stadium_image=stadium_image_path,
             match_type=data.get('match_type'),
             ticket_quantity=int(data.get('ticket_quantity')),
             ticket_price=float(data.get('ticket_price')),
-            created_by=user_id  # ✅ Используем user_id из токена
+            created_by=user_id
         )
         db.session.add(new_match)
         db.session.commit()
         return jsonify({'message': 'Match added successfully!'}), 201
+
     except Exception as e:
         return jsonify({'error': 'Failed to add match', 'details': str(e)}), 500
+
 
 
 @app.route('/update_match', methods=['POST'])

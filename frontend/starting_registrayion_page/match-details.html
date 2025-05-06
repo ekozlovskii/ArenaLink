@@ -2,17 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Match Details</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      height: 100vh;
-      width: 100vw;
       background: #006400 url('stadium.png') no-repeat center center;
       background-size: cover;
+      margin: 0;
+      height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -21,24 +19,23 @@
       background: white;
       padding: 40px;
       border-radius: 20px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
       width: 400px;
       text-align: center;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
     }
     h1, h2, p {
       color: #004d00;
       margin-bottom: 15px;
     }
-    .book-button, .back-button {
-      flex: 1;
+    button {
       margin: 10px 5px 0;
       padding: 10px 15px;
       font-size: 16px;
       font-weight: bold;
       border-radius: 8px;
       cursor: pointer;
-      transition: 0.3s;
       border: 2px solid;
+      transition: 0.3s;
     }
     .book-button {
       background: white;
@@ -49,190 +46,82 @@
       background: #004d00;
       color: white;
     }
-    .back-button {
+    .gray-button {
       background: white;
       color: #6c757d;
       border-color: #6c757d;
     }
-    .back-button:hover {
+    .gray-button:hover {
       background: #6c757d;
-      color: white;
-    }
-    /* Payment Modal */
-    #payment-modal {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: white;
-      padding: 30px;
-      border-radius: 16px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-      width: 300px;
-      text-align: center;
-      display: none;
-      z-index: 10;
-    }
-    #payment-modal input {
-      width: 100%;
-      padding: 10px;
-      border: 2px solid #004d00;
-      border-radius: 8px;
-      margin-bottom: 15px;
-    }
-    #buy-button {
-      width: 100%;
-      padding: 10px;
-      background: white;
-      color: gray;
-      border: 2px solid gray;
-      font-weight: bold;
-      border-radius: 8px;
-      cursor: not-allowed;
-      transition: 0.3s;
-    }
-    #buy-button.enabled {
-      background: white;
-      color: #004d00;
-      border-color: #004d00;
-      cursor: pointer;
-    }
-    #buy-button.enabled:hover {
-      background: #004d00;
       color: white;
     }
   </style>
 </head>
 <body>
+  <div class="container">
+    <h1 id="match-name">Match Name</h1>
+    <h2 id="match-date">Match Date</h2>
+    <p id="match-stadium">Stadium</p>
+    <p id="ticket-price">Ticket Price</p>
+    <p id="ticket-quantity">Available Tickets</p>
+    <div id="button-group"></div>
+  </div>
 
-<div class="container">
-  <h1 id="match-name">Match Name</h1>
-  <h2 id="match-date">Match Date</h2>
-  <p id="match-stadium">Stadium</p>
-  <p id="ticket-price">Ticket Price</p>
-  <p id="ticket-quantity">Available Tickets</p>
-  <button class="book-button" onclick="checkIfAlreadyBooked()">Book Ticket</button>
-  <button class="back-button" onclick="goBack()">Back</button>
-</div>
-
-<!-- Payment Modal -->
-<div id="payment-modal">
-  <h2>Enter Payment Details</h2>
-  <p id="modal-ticket-price"></p>
-  <input type="text" id="card-number" placeholder="Card Number (16 digits)">
-  <input type="text" id="expiry-date" placeholder="Expiry Date (MM/YY)">
-  <input type="text" id="cvv" placeholder="CVV (3 digits)">
-  <button id="buy-button" onclick="submitPayment()" disabled>Buy</button>
-  <button class="back-button" onclick="closePaymentForm()">Cancel</button>
-</div>
-
-<script>
-  const BASE_URL = 'http://127.0.0.1:5000';
-  let matchId, ticketPrice;
-
-  document.addEventListener('DOMContentLoaded', async function() {
-    matchId = new URLSearchParams(window.location.search).get('id');
-    if (!matchId) {
-      alert('⚠️ No match ID provided');
-      window.location.href = 'main.html';
-      return;
-    }
-
-    try {
-      const response = await fetch(`${BASE_URL}/get_match/${matchId}`, { credentials: 'include' });
-      const matchData = await response.json();
-      if (!response.ok) throw new Error(`Error: ${matchData.error}`);
-
-      document.getElementById('match-name').innerText = matchData.name;
-      document.getElementById('match-date').innerText = `Date: ${matchData.date}`;
-      document.getElementById('match-stadium').innerText = `Stadium: ${matchData.stadium}`;
-      document.getElementById('ticket-price').innerText = `Price: ${matchData.ticket_price} ₽`;
-      document.getElementById('ticket-quantity').innerText = `Available Tickets: ${matchData.ticket_quantity}`;
-      ticketPrice = matchData.ticket_price;
-    } catch (error) {
-      console.error('Error loading match:', error);
-      alert('🚫 Failed to load match details.');
-    }
-  });
-
-  async function checkIfAlreadyBooked() {
+  <script>
+    const BASE_URL = 'http://127.0.0.1:5000';
+    const matchId = new URLSearchParams(window.location.search).get('id');
     const userId = sessionStorage.getItem('userId');
-    const response = await fetch(`${BASE_URL}/my_matches/${userId}`);
-    const matches = await response.json();
+    const userRole = sessionStorage.getItem('userRole');
 
-    if (matches.some(m => m.id == matchId)) {
-      alert('🚫 You have already booked a ticket for this match.');
-    } else {
-      showPaymentForm();
-    }
-  }
-
-  function showPaymentForm() {
-    document.getElementById('modal-ticket-price').innerText = `Price: ${ticketPrice} ₽`;
-    document.getElementById('payment-modal').style.display = 'block';
-    document.getElementById('buy-button').disabled = true;
-    document.getElementById('buy-button').classList.remove('enabled');
-  }
-
-  function closePaymentForm() {
-    document.getElementById('payment-modal').style.display = 'none';
-  }
-
-  document.querySelectorAll('#card-number, #expiry-date, #cvv').forEach(input => {
-    input.addEventListener('input', validatePaymentForm);
-  });
-
-  function validatePaymentForm() {
-    const card = document.getElementById('card-number').value.replace(/\D/g, '');
-    const expiry = document.getElementById('expiry-date').value;
-    const cvv = document.getElementById('cvv').value;
-
-    const isCardValid = card.length === 16;
-    const isExpiryValid = expiry.match(/^(0[1-9]|1[0-2])\/\d{2}$/);
-    const isCvvValid = cvv.length === 3 && /^\d+$/.test(cvv);
-
-    const buyButton = document.getElementById('buy-button');
-    if (isCardValid && isExpiryValid && isCvvValid) {
-      buyButton.disabled = false;
-      buyButton.classList.add('enabled');
-    } else {
-      buyButton.disabled = true;
-      buyButton.classList.remove('enabled');
-    }
-  }
-
-  async function submitPayment() {
-    const userId = sessionStorage.getItem('userId');
-    if (!userId || !matchId) {
-      alert('🚨 Error: Missing user or match information.');
-      return;
-    }
-
-    try {
-      const response = await fetch(`${BASE_URL}/book_match`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, match_id: matchId })
-      });
-
-      const result = await response.json();
-      if (response.ok) {
-        alert('✅ Payment successful! Match booked.');
-        window.location.assign('fan-matches.html');
-      } else {
-        console.error('🚫 Booking failed:', result.error);
-        alert(`🚫 Booking failed: ${result.error}`);
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!matchId) {
+        alert('Match ID missing.');
+        return window.history.back();
       }
-    } catch (error) {
-      console.error('🚫 Payment error:', error);
-      alert('🚫 Payment failed due to an error.');
-    }
-  }
 
-  function goBack() {
-    window.history.back();
-  }
-</script>
+      try {
+        const res = await fetch(`${BASE_URL}/get_match/${matchId}`, { credentials: 'include' });
+        const match = await res.json();
+
+        if (match.error) {
+          alert(match.error);
+          return;
+        }
+
+        document.getElementById('match-name').innerText = match.name;
+        document.getElementById('match-date').innerText = `Date: ${match.date}`;
+        document.getElementById('match-stadium').innerText = `Stadium: ${match.stadium}`;
+        document.getElementById('ticket-price').innerText = `Price: ${match.ticket_price} ₽`;
+        document.getElementById('ticket-quantity').innerText = `Available Tickets: ${match.ticket_quantity}`;
+
+        const buttonGroup = document.getElementById('button-group');
+        buttonGroup.innerHTML = '';
+
+        if (userRole === 'organizer') {
+          if (Number(userId) === match.created_by) {
+            buttonGroup.innerHTML = `
+              <button class="book-button" onclick="window.location.href='edit-match.html?id=${matchId}'">✏️ Edit</button>
+              <button class="book-button" onclick="window.location.href='send-report.html?id=${matchId}'">📩 Send Report</button>
+              <button class="gray-button" onclick="window.history.back()">Back</button>
+            `;
+          } else {
+            buttonGroup.innerHTML = `<button class="gray-button" onclick="window.history.back()">Back</button>`;
+          }
+        } else {
+          buttonGroup.innerHTML = `
+            <button class="book-button" onclick="bookTicket()">Book Ticket</button>
+            <button class="gray-button" onclick="window.history.back()">Back</button>
+          `;
+        }
+      } catch (err) {
+        console.error('Failed to load match:', err);
+        alert('Error loading match details.');
+      }
+    });
+
+    function bookTicket() {
+      window.location.href = `payment.html?id=${matchId}`;
+    }
+  </script>
 </body>
 </html>
