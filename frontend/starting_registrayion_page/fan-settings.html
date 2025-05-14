@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fan Settings</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      width: 100vw;
+      background: #006400 url('stadium.png') no-repeat center center;
+      background-size: cover;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      width: 400px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      text-align: center;
+    }
+
+    h1 {
+      color: #004d00;
+      margin-bottom: 30px;
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      color: #004d00;
+      font-weight: bold;
+      text-align: left;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #004d00;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      box-sizing: border-box;
+    }
+
+    .form-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+
+    .save-button, .back-button {
+      flex: 1;
+      padding: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+      margin: 0 5px;
+    }
+
+    .save-button {
+      background: white;
+      color: #004d00;
+      border: 2px solid #004d00;
+    }
+
+    .save-button:hover {
+      background: #004d00;
+      color: white;
+    }
+
+    .back-button {
+      background: white;
+      color: #6c757d;
+      border: 2px solid #6c757d;
+    }
+
+    .back-button:hover {
+      background: #6c757d;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Settings</h1>
+
+  <label for="user-name">Your name:</label>
+  <input type="text" id="user-name" placeholder="Loading..." />
+
+  <label for="user-password">Change password:</label>
+  <input type="password" id="user-password" placeholder="Enter new password" />
+
+  <div class="form-buttons">
+    <button class="save-button" onclick="saveSettings()">Save</button>
+    <button class="back-button" onclick="window.history.back()">Back</button>
+  </div>
+</div>
+
+<script>
+  const BASE_URL = 'http://127.0.0.1:5000';
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    const userId = sessionStorage.getItem('userId');
+    const userName = sessionStorage.getItem('userName');
+
+    if (!userId || !userName) {
+      alert('Session expired. Please login again.');
+      window.location.href = 'login.html';
+      return;
+    }
+
+    document.getElementById('user-name').value = userName;
+  });
+
+  async function saveSettings() {
+    const userId = sessionStorage.getItem('userId');
+    const newName = document.getElementById('user-name').value.trim();
+    const newPassword = document.getElementById('user-password').value.trim();
+
+    const data = {};
+    if (newName) data.name = newName;
+    if (newPassword) data.password = newPassword;
+
+    try {
+      const response = await fetch(`${BASE_URL}/update_user/${userId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify(data)
+      });
+
+      const result = await response.json();
+      alert(result.message || 'Updated successfully');
+      if (data.name) sessionStorage.setItem('userName', data.name);
+    } catch (err) {
+      console.error('Update failed:', err);
+      alert('Failed to update');
+    }
+  }
+</script>
+
+</body>
+</html>

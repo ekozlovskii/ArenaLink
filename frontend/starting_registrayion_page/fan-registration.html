@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Fan Registration</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: url('stadium.png') no-repeat center center fixed;
+      background-size: cover;
+    }
+
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      width: 400px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #004d00;
+      margin-bottom: 30px;
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      color: #004d00;
+      font-weight: bold;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #004d00;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      box-sizing: border-box;
+    }
+
+    .form-buttons {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .register-button, .back-button {
+      flex: 1;
+      padding: 10px 15px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .register-button {
+      background: white;
+      color: #004d00;
+      border: 2px solid #004d00;
+      margin-right: 10px;
+    }
+
+    .register-button:hover {
+      background: #004d00;
+      color: white;
+    }
+
+    .back-button {
+      background: white;
+      color: #6c757d;
+      border: 2px solid #6c757d;
+    }
+
+    .back-button:hover {
+      background: #6c757d;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Fan Registration</h1>
+    <form id="fan-registration-form">
+      <label for="name">Name:</label>
+      <input type="text" id="name" placeholder="Enter your name" required />
+
+      <label for="login">Login:</label>
+      <input type="text" id="login" placeholder="Enter your login" required />
+
+      <label for="email">Email:</label>
+      <input type="email" id="email" placeholder="Enter your email" />
+
+      <label for="password">Password:</label>
+      <input type="password" id="password" placeholder="Enter your password" required />
+
+      <div class="form-buttons">
+        <button type="submit" class="register-button">Register</button>
+        <button type="button" class="back-button" onclick="window.history.back()">Back</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const fanForm = document.getElementById('fan-registration-form');
+
+    fanForm.addEventListener('submit', function(event) {
+      event.preventDefault();
+
+      const data = {
+        login: document.getElementById('login').value,
+        name: document.getElementById('name').value,
+        password: document.getElementById('password').value,
+        email: document.getElementById('email').value || null
+      };
+
+      fetch('http://127.0.0.1:5000/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.error) {
+            throw new Error(data.error);
+          }
+          alert('Fan registration successful!');
+          window.location.href = 'login.html';
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert(error.message);
+        });
+    });
+  </script>
+</body>
+</html>

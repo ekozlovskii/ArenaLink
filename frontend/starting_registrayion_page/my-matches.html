@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Matches</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: url('stadium.png') no-repeat center center/cover;
+    }
+
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      width: 600px;
+      text-align: center;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    h1 {
+      color: #004d00;
+      margin-bottom: 20px;
+      font-size: 32px;
+    }
+
+    #matches-list {
+      margin-bottom: 30px;
+    }
+
+    .match-item {
+      background: #f9f9f9;
+      border: 2px solid #004d00;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    .match-date {
+      font-size: 14px;
+      color: #6c757d;
+      margin-bottom: 8px;
+    }
+
+    .match-details {
+      font-size: 18px;
+      color: #004d00;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+
+    .match-actions {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+    }
+
+    .edit-button, .report-button {
+      flex: 1;
+      margin: 5px;
+      padding: 10px;
+      font-size: 14px;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+      background: white;
+      border: 2px solid #004d00;
+      color: #004d00;
+    }
+
+    .edit-button:hover, .report-button:hover {
+      background: #004d00;
+      color: white;
+      transform: scale(1.05);
+    }
+
+    .registration-back-button {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      border: 2px solid #6c757d;
+      border-radius: 10px;
+      background: white;
+      color: #6c757d;
+      cursor: pointer;
+      transition: 0.3s;
+      margin-top: 20px;
+    }
+
+    .registration-back-button:hover {
+      background: #6c757d;
+      color: white;
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>My Matches</h1>
+    <div id="matches-list">
+      <!-- Matches will be loaded here -->
+    </div>
+
+    <button class="registration-back-button" onclick="goBack()">Back</button>
+  </div>
+
+  <script>
+    function goBack() {
+      window.location.href = 'organizer-dashboard.html';
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const matchesList = document.getElementById('matches-list');
+
+      fetch('http://127.0.0.1:5000/organizer/matches', {
+        credentials: 'include'
+      })
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to load matches');
+          return response.json();
+        })
+        .then(data => {
+          if (data.length === 0) {
+            matchesList.innerHTML = '<p>No matches found.</p>';
+            return;
+          }
+
+          data.forEach(match => {
+            const matchItem = document.createElement('div');
+            matchItem.classList.add('match-item');
+            matchItem.innerHTML = `
+              <div class="match-date">${match.date_time}</div>
+              <div class="match-details">
+                <strong>${match.match_name}</strong> — ${match.stadium_name}<br>
+                Tickets: ${match.ticket_quantity} | Price: ₽${match.ticket_price}
+              </div>
+              <div class="match-actions">
+                <button onclick="editMatch(${match.id})" class="edit-button">✏️ Edit</button>
+                <button onclick="generateReport()" class="report-button">📩 Send Report</button>
+              </div>
+            `;
+            matchesList.appendChild(matchItem);
+          });
+        })
+        .catch(error => {
+          console.error('Error loading matches:', error);
+          matchesList.innerHTML = '<p>Error loading matches. Please try again later.</p>';
+        });
+    });
+
+    function editMatch(id) {
+      window.location.href = `edit-match.html?id=${id}`;
+    }
+
+    function generateReport() {
+      const login = sessionStorage.getItem('userLogin');
+      fetch(`http://127.0.0.1:5000/send_report_by_login/${login}`, {
+        method: 'POST',
+        credentials: 'include'
+      })
+      .then(response => {
+        if (!response.ok) throw new Error('Failed to send report');
+        return response.json();
+      })
+      .then(data => {
+        alert(data.message || 'Report sent!');
+      })
+      .catch(error => {
+        alert('Failed to send report');
+        console.error(error);
+      });
+    }
+  </script>
+</body>
+</html>

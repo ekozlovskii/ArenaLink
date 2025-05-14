@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Personal Account</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: url('stadium.png') no-repeat center center/cover;
+    }
+
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      width: 400px;
+      text-align: center;
+    }
+
+    h1 {
+      color: #004d00;
+      margin-bottom: 20px;
+      font-size: 32px;
+    }
+
+    .user-name-display {
+      font-size: 24px;
+      color: #004d00;
+      font-weight: bold;
+      margin-bottom: 30px;
+    }
+
+    .dashboard-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 10px; /* ✅ Добавляем одинаковый отступ между ВСЕМИ кнопками */
+    }
+
+    .dashboard-buttons button {
+      padding: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    /* Зеленые кнопки */
+    .organizer-button {
+      background: white;
+      color: #004d00;
+      border: 2px solid #004d00;
+    }
+
+    .organizer-button:hover {
+      background: #004d00;
+      color: white;
+      transform: scale(1.05);
+    }
+
+    /* Красная кнопка Logout */
+    .logout-button {
+      background: white;
+      color: #dc3545;
+      border: 2px solid #dc3545;
+    }
+
+    .logout-button:hover {
+      background: #dc3545;
+      color: white;
+      transform: scale(1.05);
+    }
+
+    /* Серая кнопка Back */
+    .registration-back-button {
+      width: 100%;
+      margin-top: 20px;
+      padding: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 8px;
+      background: white;
+      color: #6c757d;
+      border: 2px solid #6c757d;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .registration-back-button:hover {
+      background: #6c757d;
+      color: white;
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Personal Account</h1>
+    <div id="user-name" class="user-name-display">User Name</div>
+
+    <div class="dashboard-buttons">
+      <button class="organizer-button" onclick="window.location.href='my-matches.html'">My Matches</button>
+      <button class="organizer-button" onclick="addMatch()">Add Match</button>
+      <button class="organizer-button" onclick="window.location.href='settings-orgonizer.html'">Settings</button>
+      <button class="logout-button" onclick="logout()">Logout</button> <!-- ✅ Перенес внутрь dashboard-buttons -->
+    </div>
+
+    <button onclick="window.location.href='main.html'" class="registration-back-button">Back to Main</button>
+  </div>
+
+  <script>
+    const BASE_URL = 'http://127.0.0.1:5000';
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const userName = sessionStorage.getItem('userName');
+      if (userName) {
+        document.getElementById('user-name').textContent = userName;
+      } else {
+        alert('Access denied! Please log in again.');
+        window.location.href = 'login.html';
+      }
+    });
+
+    function addMatch() {
+      window.location.href = 'add-match.html';
+    }
+
+    function logout() {
+      fetch(`${BASE_URL}/logout`, {
+        method: 'POST',
+        credentials: 'include'
+      })
+      .then(response => {
+        if (response.ok) {
+          sessionStorage.clear();
+          window.location.href = 'main_logit_page.html';
+        } else {
+          alert("🚫 Logout failed. Try again.");
+        }
+      })
+      .catch(error => console.error('Logout failed:', error));
+    }
+  </script>
+</body>
+</html>

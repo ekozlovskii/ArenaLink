@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Match Details</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #006400 url('stadium.png') no-repeat center center;
+      background-size: cover;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      width: 400px;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      overflow-y: auto;
+      max-height: 95vh;
+      position: relative;
+    }
+    h1, h2, p {
+      color: #004d00;
+      margin-bottom: 10px;
+    }
+    button, select, input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 8px;
+      border: 2px solid #004d00;
+      background: white;
+      color: #004d00;
+      box-sizing: border-box;
+      transition: 0.3s;
+    }
+    button:hover, select:hover, input:hover {
+      background: #004d00;
+      color: white;
+    }
+    #stadium-image {
+      margin: 20px 0;
+      max-width: 100%;
+      border-radius: 10px;
+      display: none;
+    }
+    #ticket-selection {
+      margin-top: 15px;
+    }
+
+    /* Модальное окно */
+    #payment-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      z-index: 999;
+      width: 300px;
+      text-align: center;
+      display: none;
+    }
+
+    #payment-modal input {
+      margin-bottom: 10px;
+    }
+
+    #modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.5);
+      z-index: 998;
+      display: none;
+    }
+
+    #selected-price {
+      font-weight: bold;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 id="match-name">Match Name</h1>
+    <h2 id="match-date">Match Date</h2>
+    <p id="match-stadium">Stadium</p>
+    <p id="ticket-price">Ticket Price</p>
+    <p id="ticket-quantity">Available Tickets</p>
+
+    <img id="stadium-image" src="" alt="Stadium Plan" style="display:none; max-width:100%; border-radius:10px;">
+
+    <div id="ticket-selection" style="display: none;">
+      <select id="sector-select"></select>
+      <select id="row-select"></select>
+      <select id="seat-select"></select>
+      <p id="selected-price"></p>
+      <button id="pay-button">Proceed to Payment</button>
+      <button onclick="window.history.back()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Модальное окно -->
+  <div id="modal-overlay"></div>
+  <div id="payment-modal">
+    <h2>Enter Payment Details</h2>
+    <p id="modal-ticket-price"></p>
+    <input type="text" id="card-number" placeholder="Card Number (16 digits)" maxlength="16" inputmode="numeric" pattern="\d{16}" required>
+    <input type="text" id="expiry-date" placeholder="Expiry Date (MM/YY)" pattern="(0[1-9]|1[0-2])\/\d{2}" required>
+    <input type="text" id="cvv" placeholder="CVV (3 digits)" maxlength="3" inputmode="numeric" pattern="\d{3}" required>    
+    <button onclick="submitPayment()">Buy</button>
+    <button onclick="closePayment()">Cancel</button>
+
+  </div>
+
+  <script>
+    const BASE_URL = 'http://127.0.0.1:5000';
+    const matchId = new URLSearchParams(window.location.search).get('id');
+    const userId = sessionStorage.getItem('userId');
+    let allTickets = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const res = await fetch(`${BASE_URL}/get_match/${matchId}`);
+      const match = await res.json();
+      if (match.error) return alert(match.error);
+
+      document.getElementById('match-name').innerText = match.name;
+      document.getElementById('match-date').innerText = `Date: ${match.date}`;
+      document.getElementById('match-stadium').innerText = `Stadium: ${match.stadium}`;
+      document.getElementById('ticket-price').innerText = `Ticket Price: ${match.ticket_price} ₽`;
+      document.getElementById('ticket-quantity').innerText = `Available Tickets: ${match.ticket_quantity}`;
+      
+      if (match.stadium_image) {
+        const img = document.getElementById('stadium-image');
+        img.src = `${BASE_URL}${match.stadium_image}`;
+        img.style.display = 'block';
+      }
+
+
+      const ticketRes = await fetch(`${BASE_URL}/available_tickets/${matchId}`);
+      const data = await ticketRes.json();
+      allTickets = data.tickets;
+
+      const sectors = [...new Set(allTickets.map(t => t.sector))];
+      populateSelect('sector-select', sectors);
+      updateRows();
+      document.getElementById('ticket-selection').style.display = 'block';
+    });
+
+    function populateSelect(id, values) {
+      const select = document.getElementById(id);
+      select.innerHTML = '';
+      values.forEach(val => {
+        const option = document.createElement('option');
+        option.value = val;
+        option.textContent = val;
+        select.appendChild(option);
+      });
+    }
+
+    function updateRows() {
+      const sector = document.getElementById('sector-select').value;
+      const rows = [...new Set(allTickets.filter(t => t.sector === sector).map(t => t.row))];
+      populateSelect('row-select', rows);
+      updateSeats();
+    }
+
+    function updateSeats() {
+      const sector = document.getElementById('sector-select').value;
+      const row = parseInt(document.getElementById('row-select').value);
+      const seats = allTickets.filter(t => t.sector === sector && t.row === row).map(t => t.seat);
+      populateSelect('seat-select', seats);
+      updatePrice();
+    }
+
+    function updatePrice() {
+      const sector = document.getElementById('sector-select').value;
+      const row = parseInt(document.getElementById('row-select').value);
+      const seat = parseInt(document.getElementById('seat-select').value);
+      const ticket = allTickets.find(t => t.sector === sector && t.row === row && t.seat === seat);
+      document.getElementById('selected-price').innerText = ticket ? `Price: ${ticket.price} ₽` : '';
+    }
+
+    document.getElementById('sector-select').addEventListener('change', updateRows);
+    document.getElementById('row-select').addEventListener('change', updateSeats);
+    document.getElementById('seat-select').addEventListener('change', updatePrice);
+
+    document.getElementById('pay-button').addEventListener('click', () => {
+      const sector = document.getElementById('sector-select').value;
+      const row = parseInt(document.getElementById('row-select').value);
+      const seat = parseInt(document.getElementById('seat-select').value);
+      const ticket = allTickets.find(t => t.sector === sector && t.row === row && t.seat === seat);
+      if (!ticket) return alert("Please select a valid seat");
+
+      sessionStorage.setItem('selected_ticket_id', ticket.ticket_id);
+      document.getElementById('modal-ticket-price').innerText = `Price: ${ticket.price} ₽`;
+      document.getElementById('payment-modal').style.display = 'block';
+      document.getElementById('modal-overlay').style.display = 'block';
+    });
+
+    function closePayment() {
+      document.getElementById('payment-modal').style.display = 'none';
+      document.getElementById('modal-overlay').style.display = 'none';
+    }
+
+    function submitPayment() {
+      // Здесь можно добавить любую логику оплаты
+      const ticketId = sessionStorage.getItem('selected_ticket_id');
+      fetch(`${BASE_URL}/book_ticket`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticket_id: ticketId })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          alert(`❌ ${data.error}`);
+        } else {
+          alert('✅ Ticket booked successfully!');
+          window.location.href = 'fan-matches.html';
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert('Payment failed.');
+      });
+    }
+  </script>
+</body>
+</html>
