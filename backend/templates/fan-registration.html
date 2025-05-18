@@ -14,7 +14,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      background: url('stadium.png') no-repeat center center fixed;
+      background: url('{{ url_for("static", filename="images/stadium.png") }}') no-repeat center center fixed;
       background-size: cover;
     }
 
@@ -87,7 +87,8 @@
     }
   </style>
 </head>
-<body>
+<body data-login-url="{{ url_for('login_page') }}">
+
   <div class="container">
     <h1>Fan Registration</h1>
     <form id="fan-registration-form">
@@ -128,18 +129,19 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       })
-        .then(response => response.json())
-        .then(data => {
-          if (data.error) {
-            throw new Error(data.error);
-          }
-          alert('Fan registration successful!');
-          window.location.href = 'login.html';
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          alert(error.message);
-        });
+      .then(response => response.json())
+      .then(data => {
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        alert('🎉 Fan registration successful!');
+        const loginUrl = document.body.dataset.loginUrl;
+        window.location.href = loginUrl;
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert(error.message);
+      });
     });
   </script>
 </body>

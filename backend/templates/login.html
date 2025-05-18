@@ -1,13 +1,9 @@
-<!-- HTML Document for Registration Page with Comments -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- Meta settings for character encoding and mobile responsiveness -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Registration</title>
-  
-  <!-- Inline CSS for page styling -->
   <style>
     body {
       margin: 0;
@@ -17,11 +13,11 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      background: #006400 url('stadium.png') no-repeat center center;
+      background: #006400 url('{{ url_for("static", filename="images/stadium.png") }}') no-repeat center center;
       background-size: cover;
       font-family: Arial, sans-serif;
     }
-  
+
     .registration-container {
       background: white;
       padding: 40px;
@@ -30,19 +26,19 @@
       box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
       text-align: center;
     }
-  
+
     .registration-container img {
       height: 100px;
       margin-bottom: 20px;
       border-radius: 12px;
       box-shadow: 0 0 10px rgba(0, 100, 0, 0.3);
     }
-  
+
     .registration-container h1 {
       color: #004d00;
       margin-bottom: 30px;
     }
-  
+
     .buttons {
       display: flex;
       flex-direction: row;
@@ -51,7 +47,7 @@
       flex-wrap: wrap;
       margin-bottom: 25px;
     }
-  
+
     .role-button {
       flex: 1;
       min-width: 150px;
@@ -65,13 +61,13 @@
       cursor: pointer;
       transition: 0.3s;
     }
-  
+
     .role-button:hover {
       background: #004d00;
       color: white;
       transform: scale(1.03);
     }
-  
+
     .registration-back-button {
       width: 100%;
       padding: 12px;
@@ -84,28 +80,40 @@
       cursor: pointer;
       transition: 0.3s;
     }
-  
+
     .registration-back-button:hover {
       background: #6c757d;
       color: white;
       transform: scale(1.03);
     }
-  </style>  
+  </style>
 </head>
-<body>
+<body
+  data-fan="{{ url_for('fan_registration') }}"
+  data-org="{{ url_for('organizer_page') }}"
+>
   <div class="registration-container">
-    <img src="logo.png" alt="ArenaLink Logo" />
+    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="ArenaLink Logo" />
     <h1>Registration</h1>
 
     <div class="buttons">
-      <button class="role-button" onclick="window.location.href='fan-registration.html'">Fan</button>
-      <button class="role-button" onclick="window.location.href='organizer-page.html'">Organizer</button>
+      <button class="role-button" onclick="goToFan()">Fan</button>
+      <button class="role-button" onclick="goToOrg()">Organizer</button>
     </div>
 
     <button class="registration-back-button" onclick="window.history.back()">Back</button>
   </div>
+
   <script>
-    console.log('Registration page loaded.');
+    function goToFan() {
+      const fanUrl = document.body.dataset.fan;
+      window.location.href = fanUrl;
+    }
+
+    function goToOrg() {
+      const orgUrl = document.body.dataset.org;
+      window.location.href = orgUrl;
+    }
   </script>
 </body>
 </html>

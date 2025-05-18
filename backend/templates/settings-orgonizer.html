@@ -14,7 +14,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      background: #006400 url('stadium.png') no-repeat center center;
+      background: #006400 url('{{ url_for("static", filename="images/stadium.png") }}') no-repeat center center;
       background-size: cover;
     }
     .container {
@@ -103,7 +103,7 @@
       const userName = sessionStorage.getItem('userName');
 
       if (!userId || !userName) {
-        alert('Session expired. Please login again.');
+        alert('⚠️ Session expired. Please login again.');
         window.location.href = 'login.html';
         return;
       }
@@ -120,22 +120,30 @@
       if (newName) data.name = newName;
       if (newPassword) data.password = newPassword;
 
+      if (Object.keys(data).length === 0) {
+        alert('Please enter new data before saving.');
+        return;
+      }
+
       try {
         const response = await fetch(`${BASE_URL}/update_user/${userId}`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify(data)
         });
 
         const result = await response.json();
-        alert(result.message || 'Updated successfully');
+        if (result.message) {
+          alert(result.message);
+        } else {
+          alert('Updated successfully');
+        }
+
         if (data.name) sessionStorage.setItem('userName', data.name);
       } catch (err) {
         console.error('Update failed:', err);
-        alert('Failed to update');
+        alert('Failed to update settings.');
       }
     }
   </script>

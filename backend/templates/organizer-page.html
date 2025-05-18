@@ -14,7 +14,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      background: url('stadium.png') no-repeat center center fixed;
+      background: url('{{ url_for("static", filename="images/stadium.png") }}') no-repeat center center fixed;
       background-size: cover;
     }
 
@@ -101,10 +101,10 @@
       <input type="email" id="email" name="email" placeholder="Enter email">
 
       <label for="password">Password:</label>
-      <input type="password" id="password" placeholder="Enter password" required>
+      <input type="password" id="password" name="password" placeholder="Enter password" required>
 
       <label for="contact">Contact Info:</label>
-      <input type="text" id="contact" placeholder="Enter contact details" required>
+      <input type="text" id="contact" name="contact" placeholder="Enter contact details" required>
 
       <label for="documents">Upload Document:</label>
       <input type="file" id="documents" name="documents" required>
@@ -119,37 +119,41 @@
   <script>
     const organizerForm = document.getElementById('organizer-registration-form');
 
-    if (organizerForm) {
-      organizerForm.addEventListener('submit', function(event) {
-        event.preventDefault();
+    organizerForm.addEventListener('submit', async function(event) {
+      event.preventDefault();
 
-        const fileInput = document.getElementById('documents');
-        const formData = new FormData();
-        formData.append('login', document.getElementById('login').value);
-        formData.append('email', document.getElementById('email').value);
-        formData.append('password', document.getElementById('password').value);
-        formData.append('organization', document.getElementById('organization').value);
-        formData.append('contact', document.getElementById('contact').value);
-        formData.append('documents', fileInput.files[0]);
+      const fileInput = document.getElementById('documents');
+      if (!fileInput.files[0]) {
+        alert('Please upload the required document');
+        return;
+      }
 
-        fetch('http://127.0.0.1:5000/register_organizer', {
+      const formData = new FormData();
+      formData.append('organization', document.getElementById('organization').value);
+      formData.append('login', document.getElementById('login').value);
+      formData.append('email', document.getElementById('email').value || '');
+      formData.append('password', document.getElementById('password').value);
+      formData.append('contact', document.getElementById('contact').value);
+      formData.append('file', fileInput.files[0]);
+
+      try {
+        const response = await fetch('http://127.0.0.1:5000/register_organizer', {
           method: 'POST',
-          body: formData,
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.error) {
-            throw new Error(data.error);
-          }
-          alert('Organizer registration successful!');
-          window.location.href = 'login.html';
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          alert(error.message || 'Registration failed');
+          body: formData
         });
-      });
-    }
+
+        const result = await response.json();
+        if (result.error) {
+          throw new Error(result.error);
+        }
+
+        alert('✅ Organizer registration successful!');
+        window.location.href = '{{ url_for("login_page") }}';
+      } catch (err) {
+        console.error('❌ Registration failed:', err);
+        alert(`❌ ${err.message}`);
+      }
+    });
   </script>
 </body>
 </html>

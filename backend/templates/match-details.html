@@ -7,33 +7,38 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #006400 url('stadium.png') no-repeat center center;
+      background: #006400 url('{{ url_for("static", filename="images/stadium.png") }}') no-repeat center center;
       background-size: cover;
       margin: 0;
       height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
+      overflow: hidden;
     }
+  
     .container {
       background: white;
       padding: 30px;
       border-radius: 20px;
-      width: 400px;
+      width: 700px;
+      max-height: calc(100vh - 80px);
+      overflow-y: auto;
       text-align: center;
       box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-      overflow-y: auto;
-      max-height: 95vh;
-      position: relative;
+      margin: auto;
     }
-    h1, h2, p {
+  
+    h1, h2, p, label {
       color: #004d00;
       margin-bottom: 10px;
     }
+  
     button, select, input {
-      width: 100%;
+      width: 70%;
+      max-width: 400px;
       padding: 10px;
-      margin-top: 10px;
+      margin: 10px auto;
       font-size: 16px;
       font-weight: bold;
       border-radius: 8px;
@@ -42,22 +47,25 @@
       color: #004d00;
       box-sizing: border-box;
       transition: 0.3s;
+      display: block;
     }
+  
     button:hover, select:hover, input:hover {
       background: #004d00;
       color: white;
     }
+  
     #stadium-image {
       margin: 20px 0;
       max-width: 100%;
       border-radius: 10px;
       display: none;
     }
+  
     #ticket-selection {
       margin-top: 15px;
     }
-
-    /* Модальное окно */
+  
     #payment-modal {
       position: fixed;
       top: 50%;
@@ -72,11 +80,11 @@
       text-align: center;
       display: none;
     }
-
+  
     #payment-modal input {
       margin-bottom: 10px;
     }
-
+  
     #modal-overlay {
       position: fixed;
       top: 0;
@@ -87,44 +95,73 @@
       z-index: 998;
       display: none;
     }
-
+  
     #selected-price {
       font-weight: bold;
       margin-top: 10px;
     }
-  </style>
+  
+    .ticket-label {
+      margin-top: 10px;
+      font-weight: bold;
+      text-align: left;
+      color: #004d00;
+      width: 70%;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  
+    /* 🎯 ВАЖНО: это делает кнопки и input в окне оплаты широкими */
+    #payment-modal button,
+    #payment-modal input,
+    #payment-modal p {
+      width: 100%;
+      max-width: none;
+      margin: 10px 0;
+    }
+  </style>  
 </head>
 <body>
   <div class="container">
     <h1 id="match-name">Match Name</h1>
     <h2 id="match-date">Match Date</h2>
     <p id="match-stadium">Stadium</p>
-    <p id="ticket-price">Ticket Price</p>
     <p id="ticket-quantity">Available Tickets</p>
 
-    <img id="stadium-image" src="" alt="Stadium Plan" style="display:none; max-width:100%; border-radius:10px;">
+    <img id="stadium-image" src="" alt="Stadium Plan">
 
     <div id="ticket-selection" style="display: none;">
+      <label class="ticket-label" for="sector-select">Sector</label>
       <select id="sector-select"></select>
+
+      <label class="ticket-label" for="row-select">Row</label>
       <select id="row-select"></select>
+
+      <label class="ticket-label" for="seat-select">Seat</label>
       <select id="seat-select"></select>
+
       <p id="selected-price"></p>
       <button id="pay-button">Proceed to Payment</button>
       <button onclick="window.history.back()">Cancel</button>
     </div>
+    <div id="organizer-actions" style="margin-top: 20px; display: none;">
+      <button id="edit-button">✏️ Edit</button>
+      <button id="report-button">📩 Send Report</button>
+      <button onclick="window.history.back()">Back</button>
+    </div>    
   </div>
+  
 
-  <!-- Модальное окно -->
   <div id="modal-overlay"></div>
   <div id="payment-modal">
     <h2>Enter Payment Details</h2>
     <p id="modal-ticket-price"></p>
-    <input type="text" id="card-number" placeholder="Card Number (16 digits)" maxlength="16" inputmode="numeric" pattern="\d{16}" required>
-    <input type="text" id="expiry-date" placeholder="Expiry Date (MM/YY)" pattern="(0[1-9]|1[0-2])\/\d{2}" required>
-    <input type="text" id="cvv" placeholder="CVV (3 digits)" maxlength="3" inputmode="numeric" pattern="\d{3}" required>    
+    <input type="text" id="card-number" placeholder="Card Number (16 digits)" maxlength="16" inputmode="numeric" required>
+    <input type="text" id="expiry-date" placeholder="Expiry Date (MM/YY)" required>
+    <input type="text" id="cvv" placeholder="CVV (3 digits)" maxlength="3" inputmode="numeric" required>
     <button onclick="submitPayment()">Buy</button>
     <button onclick="closePayment()">Cancel</button>
-
   </div>
 
   <script>
@@ -134,31 +171,46 @@
     let allTickets = [];
 
     document.addEventListener('DOMContentLoaded', async () => {
-      const res = await fetch(`${BASE_URL}/get_match/${matchId}`);
-      const match = await res.json();
-      if (match.error) return alert(match.error);
+      try {
+        const res = await fetch(`${BASE_URL}/get_match/${matchId}`);
+        const match = await res.json();
+        const currentUserId = sessionStorage.getItem('userId');
+        if (match.created_by && String(match.created_by) === String(currentUserId)) {
+          document.getElementById('organizer-actions').style.display = 'block';
+        } 
+        if (match.error) return alert(match.error);
 
-      document.getElementById('match-name').innerText = match.name;
-      document.getElementById('match-date').innerText = `Date: ${match.date}`;
-      document.getElementById('match-stadium').innerText = `Stadium: ${match.stadium}`;
-      document.getElementById('ticket-price').innerText = `Ticket Price: ${match.ticket_price} ₽`;
-      document.getElementById('ticket-quantity').innerText = `Available Tickets: ${match.ticket_quantity}`;
-      
-      if (match.stadium_image) {
-        const img = document.getElementById('stadium-image');
-        img.src = `${BASE_URL}${match.stadium_image}`;
-        img.style.display = 'block';
+        document.getElementById('match-name').innerText = match.name;
+        document.getElementById('match-date').innerText = `Date: ${match.date.replace('T', ' ')}`;
+        document.getElementById('match-stadium').innerText = `Stadium: ${match.stadium}`;
+        document.getElementById('ticket-quantity').innerText = `Available Tickets: ${match.ticket_quantity}`;
+
+        if (match.stadium_image) {
+          const img = document.getElementById('stadium-image');
+          img.src = `${BASE_URL}${match.stadium_image}`;
+          img.style.display = 'block';
+        }
+
+        const ticketRes = await fetch(`${BASE_URL}/available_tickets/${matchId}`);
+        const data = await ticketRes.json();
+        allTickets = data.tickets;
+
+        const sectors = [...new Set(allTickets.map(t => t.sector))];
+        populateSelect('sector-select', sectors);
+        updateRows();
+        const isOrganizer = match.created_by && String(match.created_by) === String(currentUserId);
+        if (isOrganizer) {
+          document.getElementById('organizer-actions').style.display = 'block';
+        } else {
+          document.getElementById('ticket-selection').style.display = 'block';
+        }
+
+
+
+      } catch (error) {
+        console.error('❌ Failed to load match data:', error);
+        alert('Failed to load match info');
       }
-
-
-      const ticketRes = await fetch(`${BASE_URL}/available_tickets/${matchId}`);
-      const data = await ticketRes.json();
-      allTickets = data.tickets;
-
-      const sectors = [...new Set(allTickets.map(t => t.sector))];
-      populateSelect('sector-select', sectors);
-      updateRows();
-      document.getElementById('ticket-selection').style.display = 'block';
     });
 
     function populateSelect(id, values) {
@@ -218,28 +270,44 @@
     }
 
     function submitPayment() {
-      // Здесь можно добавить любую логику оплаты
       const ticketId = sessionStorage.getItem('selected_ticket_id');
+
       fetch(`${BASE_URL}/book_ticket`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ticket_id: ticketId })
       })
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) {
-          alert(`❌ ${data.error}`);
-        } else {
-          alert('✅ Ticket booked successfully!');
-          window.location.href = 'fan-matches.html';
-        }
+      .then(async res => {
+        const text = await res.text();
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${text}`);
+        const json = JSON.parse(text);
+        alert('✅ Ticket booked successfully!');
+        window.location.reload();
       })
       .catch(err => {
-        console.error(err);
-        alert('Payment failed.');
+        console.error('❌ Booking failed:', err);
+        alert(`❌ Payment failed: ${err.message}`);
       });
     }
+
+    document.getElementById('edit-button').addEventListener('click', () => {
+      window.location.href = `edit-match.html?id=${matchId}`;
+    });
+
+    document.getElementById('report-button').addEventListener('click', () => {
+      const login = sessionStorage.getItem('userLogin');
+      fetch(`${BASE_URL}/send_report_by_login/${login}`, {
+        method: 'POST',
+        credentials: 'include'
+      })
+      .then(res => res.json())
+      .then(data => alert(data.message || 'Report sent'))
+      .catch(err => {
+        console.error('❌ Failed to send report:', err);
+        alert('Failed to send report');
+      });
+    });
   </script>
 </body>
 </html>

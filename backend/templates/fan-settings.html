@@ -11,7 +11,7 @@
       padding: 0;
       height: 100vh;
       width: 100vw;
-      background: #006400 url('stadium.png') no-repeat center center;
+      background: #006400 url('{{ url_for("static", filename="images/stadium.png") }}') no-repeat center center;
       background-size: cover;
       display: flex;
       justify-content: center;
@@ -89,7 +89,7 @@
     }
   </style>
 </head>
-<body>
+<body data-login-url="{{ url_for('login_page') }}">
 
 <div class="container">
   <h1>Settings</h1>
@@ -109,13 +109,14 @@
 <script>
   const BASE_URL = 'http://127.0.0.1:5000';
 
-  document.addEventListener('DOMContentLoaded', async () => {
+  document.addEventListener('DOMContentLoaded', () => {
     const userId = sessionStorage.getItem('userId');
     const userName = sessionStorage.getItem('userName');
+    const loginUrl = document.body.dataset.loginUrl;
 
     if (!userId || !userName) {
       alert('Session expired. Please login again.');
-      window.location.href = 'login.html';
+      window.location.href = loginUrl;
       return;
     }
 
@@ -134,9 +135,7 @@
     try {
       const response = await fetch(`${BASE_URL}/update_user/${userId}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(data)
       });

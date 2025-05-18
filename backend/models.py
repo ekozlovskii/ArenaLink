@@ -173,3 +173,13 @@ class Row(db.Model):
     sector_id = db.Column(db.Integer, db.ForeignKey('sector.id'), nullable=False)
     number = db.Column(db.Integer, nullable=False)
     seat_count = db.Column(db.Integer, nullable=False)
+
+class SectorPrice(db.Model):
+    __tablename__ = 'sector_price'
+
+    id = db.Column(db.Integer, primary_key=True)
+    match_id = db.Column(db.Integer, db.ForeignKey('match.match_id'), nullable=False)
+    sector = db.Column(db.String(50), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+
+    match = db.relationship('Match', backref=db.backref('sector_prices', lazy=True))

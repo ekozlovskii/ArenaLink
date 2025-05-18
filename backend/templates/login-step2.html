@@ -1,12 +1,10 @@
-<!-- HTML Document for Secure Log In Page -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Log In</title>
-  
-  <!-- Inline CSS for page styling -->
+
   <style>
     body {
       margin: 0;
@@ -16,11 +14,11 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      background: #006400 url('stadium.png') no-repeat center center;
+      background: #006400 url('{{ url_for("static", filename="images/stadium.png") }}') no-repeat center center;
       background-size: cover;
       font-family: Arial, sans-serif;
     }
-  
+
     .login-container {
       background: white;
       padding: 40px;
@@ -29,39 +27,38 @@
       box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
       text-align: center;
     }
-  
+
     .login-container h1 {
       color: #004d00;
       margin-bottom: 25px;
     }
-  
+
     form {
       display: flex;
       flex-direction: column;
       gap: 12px;
       text-align: left;
     }
-  
+
     label {
       font-weight: bold;
       color: #004d00;
     }
-  
+
     input {
       padding: 12px;
       font-size: 16px;
       border: 1px solid #ccc;
       border-radius: 6px;
     }
-  
+
     .buttons-container {
       display: flex;
       justify-content: space-between;
       margin-top: 15px;
     }
-  
-    .login-button,
-    .login-back-button {
+
+    .login-button, .login-back-button {
       flex: 1;
       margin: 0 5px;
       padding: 12px;
@@ -74,35 +71,27 @@
       cursor: pointer;
       transition: 0.3s;
     }
-  
-    .login-button:hover,
-    .login-back-button:hover {
+
+    .login-button:hover, .login-back-button:hover {
       background: #004d00;
       color: white;
       transform: scale(1.03);
     }
-  
+
     .error-message {
       color: red;
       font-size: 14px;
       margin-bottom: 10px;
     }
   </style>
-  
-  
-  <!-- JavaScript for Secure Login Handling -->
+
   <script>
     const BASE_URL = 'http://127.0.0.1:5000';
-
-    function handleLogoutOnUnload() {
-      navigator.sendBeacon(`${BASE_URL}/logout`);
-    }
 
     document.addEventListener('DOMContentLoaded', () => {
       const loginForm = document.getElementById('login-form');
       const errorMessage = document.getElementById('error-message');
-
-      if (!loginForm) return console.error('Element with id "login-form" not found');
+      const redirectTarget = document.body.dataset.redirect;
 
       async function checkAuth() {
         try {
@@ -116,7 +105,7 @@
               sessionStorage.setItem('userId', data.user_id);
               sessionStorage.setItem('userRole', data.role);
               sessionStorage.setItem('userName', data.user_name || 'Fan');
-              window.location.assign('main.html');
+              window.location.assign(redirectTarget);
             }
           }
         } catch (error) {
@@ -126,6 +115,7 @@
 
       loginForm.addEventListener('submit', async (event) => {
         event.preventDefault();
+
         const loginData = {
           login: document.getElementById('login').value.trim(),
           password: document.getElementById('password').value.trim()
@@ -148,9 +138,9 @@
           sessionStorage.setItem('userId', data.user_id);
           sessionStorage.setItem('userRole', data.role);
           sessionStorage.setItem('userName', data.user_name || 'Fan');
-          sessionStorage.setItem('userLogin', loginData.login); // ✅ ВОТ ЭТО ДОБАВЬ
-          window.removeEventListener('beforeunload', handleLogoutOnUnload);
-          setTimeout(() => window.location.assign('main.html'), 300);
+          sessionStorage.setItem('userLogin', loginData.login);
+
+          setTimeout(() => window.location.assign(redirectTarget), 300);
         } catch (error) {
           errorMessage.textContent = error.message || 'Login failed';
         }
@@ -160,7 +150,8 @@
     });
   </script>
 </head>
-<body>
+
+<body data-redirect="{{ url_for('main_page') }}">
   <div class="login-container">
     <h1>Log In</h1>
 

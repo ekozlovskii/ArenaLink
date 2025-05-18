@@ -14,7 +14,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      background: url('stadium.png') no-repeat center center/cover;
+      background: url('{{ url_for("static", filename="images/stadium.png") }}') no-repeat center center/cover;
     }
 
     .container {
@@ -42,7 +42,7 @@
     .dashboard-buttons {
       display: flex;
       flex-direction: column;
-      gap: 10px; /* ✅ Добавляем одинаковый отступ между ВСЕМИ кнопками */
+      gap: 12px;
     }
 
     .dashboard-buttons button {
@@ -54,7 +54,6 @@
       transition: 0.3s;
     }
 
-    /* Зеленые кнопки */
     .organizer-button {
       background: white;
       color: #004d00;
@@ -67,7 +66,6 @@
       transform: scale(1.05);
     }
 
-    /* Красная кнопка Logout */
     .logout-button {
       background: white;
       color: #dc3545;
@@ -80,7 +78,6 @@
       transform: scale(1.05);
     }
 
-    /* Серая кнопка Back */
     .registration-back-button {
       width: 100%;
       margin-top: 20px;
@@ -105,34 +102,32 @@
 <body>
   <div class="container">
     <h1>Personal Account</h1>
-    <div id="user-name" class="user-name-display">User Name</div>
+    <div id="user-name" class="user-name-display">Loading...</div>
 
     <div class="dashboard-buttons">
-      <button class="organizer-button" onclick="window.location.href='my-matches.html'">My Matches</button>
-      <button class="organizer-button" onclick="addMatch()">Add Match</button>
-      <button class="organizer-button" onclick="window.location.href='settings-orgonizer.html'">Settings</button>
-      <button class="logout-button" onclick="logout()">Logout</button> <!-- ✅ Перенес внутрь dashboard-buttons -->
+      <button class="organizer-button" onclick="window.location.href='{{ url_for('my_matches_page') }}'">My Matches</button>
+      <button class="organizer-button" onclick="window.location.href='{{ url_for('add_match_page') }}'">Add Match</button>
+      <button class="organizer-button" onclick="window.location.href='{{ url_for('settings_organizer') }}'">Settings</button>
+      <button class="logout-button" onclick="logout()">Logout</button>
     </div>
 
-    <button onclick="window.location.href='main.html'" class="registration-back-button">Back to Main</button>
+    <button onclick="window.location.href='{{ url_for('main_page') }}'" class="registration-back-button">Back to Main</button>
   </div>
 
   <script>
     const BASE_URL = 'http://127.0.0.1:5000';
 
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
       const userName = sessionStorage.getItem('userName');
-      if (userName) {
+      const userRole = sessionStorage.getItem('userRole');
+
+      if (userName && userRole === 'organizer') {
         document.getElementById('user-name').textContent = userName;
       } else {
-        alert('Access denied! Please log in again.');
-        window.location.href = 'login.html';
+        alert('Access denied! Please log in as organizer.');
+        window.location.href = '{{ url_for("login_page") }}';
       }
     });
-
-    function addMatch() {
-      window.location.href = 'add-match.html';
-    }
 
     function logout() {
       fetch(`${BASE_URL}/logout`, {
@@ -142,12 +137,15 @@
       .then(response => {
         if (response.ok) {
           sessionStorage.clear();
-          window.location.href = 'main_logit_page.html';
+          window.location.href = '{{ url_for("main_logit_page") }}';
         } else {
           alert("🚫 Logout failed. Try again.");
         }
       })
-      .catch(error => console.error('Logout failed:', error));
+      .catch(error => {
+        console.error('Logout failed:', error);
+        alert("🚫 Logout failed.");
+      });
     }
   </script>
 </body>

@@ -11,7 +11,7 @@
       padding: 0;
       height: 100vh;
       width: 100vw;
-      background: #006400 url('stadium.png') no-repeat center center;
+      background: #006400 url('{{ url_for("static", filename="images/stadium.png") }}') no-repeat center center;
       background-size: cover;
       display: flex;
       justify-content: center;
@@ -90,17 +90,24 @@
     }
   </style>
 </head>
-<body>
+<body
+  data-matches-url="{{ url_for('fan_matches') }}"
+  data-settings-url="{{ url_for('fan_settings') }}"
+  data-main-url="{{ url_for('main_page') }}"
+  data-login-url="{{ url_for('login_step2_page') }}"
+  data-logout-url="{{ url_for('user_logout') }}"
+  data-mainlog-url="{{ url_for('main_logit_page') }}"
+>
 
 <div class="container">
   <h1>Personal Account</h1>
   <div id="user-name">Loading...</div>
 
   <div class="dashboard-buttons">
-    <button class="fan-button" onclick="window.location.href='fan-matches.html'">My Tickets</button>
-    <button class="fan-button" onclick="window.location.href='fan-settings.html'">Settings</button>
+    <button class="fan-button" id="btn-matches">My Tickets</button>
+    <button class="fan-button" id="btn-settings">Settings</button>
     <button class="logout-button" onclick="logout()">Logout</button>
-    <button class="back-button" onclick="window.location.href='main.html'">Back to Main</button>
+    <button class="back-button" id="btn-main">Back to Main</button>
   </div>
 </div>
 
@@ -117,20 +124,30 @@
         document.getElementById('user-name').innerText = userName;
       } else {
         alert('🚫 Access denied: Unknown role.');
-        window.location.href = 'login-step2.html';
+        window.location.href = document.body.dataset.loginUrl;
       }
     }, 200);
+
+    document.getElementById('btn-matches').onclick = () => {
+      window.location.href = document.body.dataset.matchesUrl;
+    };
+    document.getElementById('btn-settings').onclick = () => {
+      window.location.href = document.body.dataset.settingsUrl;
+    };
+    document.getElementById('btn-main').onclick = () => {
+      window.location.href = document.body.dataset.mainUrl;
+    };
   });
 
   function logout() {
-    fetch(`${BASE_URL}/logout`, {
+    fetch(document.body.dataset.logoutUrl, {
       method: 'POST',
       credentials: 'include'
     })
     .then(response => {
       if (response.ok) {
         sessionStorage.clear();
-        window.location.href = 'main_logit_page.html';
+        window.location.href = document.body.dataset.mainlogUrl;
       } else {
         alert("🚫 Logout failed. Try again.");
       }

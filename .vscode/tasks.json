@@ -1,0 +1,29 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Run Flask App",
+        "type": "shell",
+        "command": "flask run",
+        "options": {
+          "cwd": "${workspaceFolder}/backend",
+          "env": {
+            "FLASK_APP": "app.py",
+            "FLASK_ENV": "development"
+          }
+        },
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "shared"
+        },
+        "problemMatcher": []
+      }
+    ]
+  }
+  

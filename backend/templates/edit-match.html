@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Match</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #006400 url('{{ url_for("static", filename="images/stadium.png") }}') no-repeat center center;
+      background-size: cover;
+    }
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      width: 400px;
+      max-height: 600px;
+      overflow-y: hidden;
+      text-align: center;
+      transition: max-height 0.5s ease, overflow 0.3s;
+    }
+    .container.expanded {
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    h1 { color: #004d00; margin-bottom: 30px; }
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      color: #004d00;
+      font-weight: bold;
+      text-align: left;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #004d00;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      box-sizing: border-box;
+    }
+    .form-buttons {
+      display: flex;
+      justify-content: space-between;
+    }
+    .update-button, .cancel-button {
+      flex: 1;
+      padding: 10px 15px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .update-button {
+      background: white;
+      color: #004d00;
+      border: 2px solid #004d00;
+      margin-right: 10px;
+    }
+    .update-button:hover {
+      background: #004d00;
+      color: white;
+    }
+    .cancel-button {
+      background: white;
+      color: #6c757d;
+      border: 2px solid #6c757d;
+    }
+    .cancel-button:hover {
+      background: #6c757d;
+      color: white;
+    }
+  </style>
+</head>
+<body data-dashboard-url="{{ url_for('organizer_dashboard') }}">
+  <div class="container">
+    <h1>Edit Match</h1>
+    <form id="edit-match-form" enctype="multipart/form-data">
+      <input type="hidden" id="match_id" name="match_id">
+
+      <label for="match_name">Match Name:</label>
+      <input type="text" id="match_name" name="match_name" required>
+
+      <label for="date_time">Date and Time:</label>
+      <input type="datetime-local" id="date_time" name="date_time" required>
+
+      <label for="stadium_choice">Stadium:</label>
+      <select id="stadium_choice" name="stadium_choice" required>
+        <option value="arenalink">ArenaLink Stadium</option>
+        <option value="custom">Upload Your Own</option>
+      </select>
+
+      <div id="custom-stadium-section" style="display:none;">
+        <label for="stadium_name">Stadium Name:</label>
+        <input type="text" id="stadium_name" name="stadium_name">
+
+        <label for="stadium_plan">Upload Stadium Plan (CSV):</label>
+        <input type="file" id="stadium_plan" name="stadium_plan" accept=".csv">
+
+        <label for="stadium_image">Upload Stadium Image (PNG/JPG):</label>
+        <input type="file" id="stadium_image" name="stadium_image" accept=".png,.jpg,.jpeg">
+      </div>
+
+      <div id="arenalink-sector-prices" style="display:none;"></div>
+
+      <label for="match_type">Match Type:</label>
+      <select id="match_type" name="match_type" required>
+        <option value="friendly">Friendly</option>
+        <option value="tournament">Tournament</option>
+      </select>
+
+      <div class="form-buttons">
+        <button type="submit" class="update-button">Update</button>
+        <button type="button" class="cancel-button" onclick="window.history.back()">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const form = document.getElementById('edit-match-form');
+    const stadiumChoice = document.getElementById('stadium_choice');
+    const customSection = document.getElementById('custom-stadium-section');
+    const sectorPrices = document.getElementById('arenalink-sector-prices');
+    const formContainer = document.querySelector('.container');
+    const dashboardUrl = document.body.dataset.dashboardUrl;
+    const matchId = new URLSearchParams(window.location.search).get('id');
+
+    stadiumChoice.addEventListener('change', () => {
+      const choice = stadiumChoice.value;
+      customSection.style.display = choice === 'custom' ? 'block' : 'none';
+      sectorPrices.style.display = choice === 'arenalink' ? 'block' : 'none';
+      formContainer.classList.toggle('expanded', choice !== '');
+
+      if (choice === 'arenalink') {
+        fetch(`http://127.0.0.1:5000/api/sectors/${matchId}`)
+          .then(response => response.json())
+          .then(data => {
+            sectorPrices.innerHTML = '<h3>Set Prices per Sector</h3>';
+            data.sectors.forEach(sector => {
+              const label = document.createElement('label');
+              label.innerText = `Sector ${sector}`;
+              const input = document.createElement('input');
+              input.type = 'number';
+              input.name = `sector_price_${sector}`;
+              input.placeholder = '₽';
+              input.required = true;
+              input.style.marginBottom = '10px';
+              sectorPrices.appendChild(label);
+              sectorPrices.appendChild(input);
+            });
+          });
+      } else {
+        sectorPrices.innerHTML = '';
+      }
+    });
+
+    fetch(`http://127.0.0.1:5000/get_match/${matchId}`)
+      .then(response => response.json())
+      .then(match => {
+        document.getElementById('match_id').value = match.id;
+        document.getElementById('match_name').value = match.name;
+        document.getElementById('date_time').value = match.date;
+        document.getElementById('match_type').value = match.match_type || 'friendly';
+        document.getElementById('stadium_choice').value = match.stadium === 'ArenaLink Stadium' ? 'arenalink' : 'custom';
+        stadiumChoice.dispatchEvent(new Event('change'));
+
+        // Set stadium name if custom
+        if (match.stadium && match.stadium !== 'ArenaLink Stadium') {
+          document.getElementById('stadium_name').value = match.stadium;
+        }
+
+        // Sector prices
+        setTimeout(() => {
+          Object.entries(match.sector_prices || {}).forEach(([sector, price]) => {
+            const input = sectorPrices.querySelector(`input[name="sector_price_${sector}"]`);
+            if (input) input.value = price;
+          });
+        }, 500);
+      });
+
+    form.addEventListener('submit', function(event) {
+      event.preventDefault();
+      const formData = new FormData(form);
+      sectorPrices.querySelectorAll('input[name^="sector_price_"]').forEach(input => {
+        formData.append(input.name, input.value);
+      });
+
+      fetch('http://127.0.0.1:5000/update_match', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      })
+      .then(response => response.json())
+      .then(data => {
+        alert(data.message || 'Match updated!');
+        window.location.href = dashboardUrl;
+      })
+      .catch(error => {
+        console.error('Update failed:', error);
+        alert('❌ Failed to update match.');
+      });
+    });
+  </script>
+</body>
+</html>

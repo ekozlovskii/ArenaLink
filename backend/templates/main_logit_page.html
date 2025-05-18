@@ -12,7 +12,7 @@
       width: 100vw;
       font-family: Arial, sans-serif;
       background-color: #004d00;
-      background-image: url('stadium.png');
+      background-image: url('{{ url_for("static", filename="images/stadium.png") }}');
       background-size: cover;
       background-position: center;
       display: flex;
@@ -71,11 +71,11 @@
 </head>
 <body>
   <div class="login-container">
-    <img src="logo.png" alt="ArenaLink Logo">
+    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="ArenaLink Logo">
     <h1>Welcome to ArenaLink</h1>
     <p>Manage your matches and tickets in one place</p>
-    <button onclick="window.location.href='login-step2.html'">Log In</button>
-    <button onclick="window.location.href='login.html'">Sign Up</button>
+    <button onclick="window.location.href='{{ url_for('login_step2_page') }}'">Log In</button>
+    <button onclick="window.location.href='{{ url_for('login_page') }}'">Sign Up</button>
   </div>
 </body>
 </html>

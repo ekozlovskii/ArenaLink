@@ -14,7 +14,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      background: url('stadium.png') no-repeat center center/cover;
+      background: url('{{ url_for("static", filename="images/stadium.png") }}') no-repeat center center/cover;
     }
 
     .container {
@@ -86,6 +86,10 @@
       transform: scale(1.05);
     }
 
+    .edit-button:focus, .report-button:focus {
+      outline: none;
+    }
+
     .registration-back-button {
       width: 100%;
       padding: 12px;
@@ -110,24 +114,27 @@
 <body>
   <div class="container">
     <h1>My Matches</h1>
-    <div id="matches-list">
-      <!-- Matches will be loaded here -->
-    </div>
-
+    <div id="matches-list"></div>
     <button class="registration-back-button" onclick="goBack()">Back</button>
   </div>
 
   <script>
+    const BASE_URL = 'http://127.0.0.1:5000';
+
     function goBack() {
-      window.location.href = 'organizer-dashboard.html';
+      window.location.href = "{{ url_for('organizer_dashboard') }}";
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', () => {
+      const login = sessionStorage.getItem('userLogin');
       const matchesList = document.getElementById('matches-list');
 
-      fetch('http://127.0.0.1:5000/organizer/matches', {
-        credentials: 'include'
-      })
+      if (!login) {
+        matchesList.innerHTML = '<p>Session expired. Please log in again.</p>';
+        return;
+      }
+
+      fetch(`${BASE_URL}/organizer/matches`, { credentials: 'include' })
         .then(response => {
           if (!response.ok) throw new Error('Failed to load matches');
           return response.json();
@@ -145,11 +152,11 @@
               <div class="match-date">${match.date_time}</div>
               <div class="match-details">
                 <strong>${match.match_name}</strong> — ${match.stadium_name}<br>
-                Tickets: ${match.ticket_quantity} | Price: ₽${match.ticket_price}
+                Type: ${match.match_type} | Tickets: ${match.tickets_sold} / ${match.ticket_quantity}
               </div>
               <div class="match-actions">
                 <button onclick="editMatch(${match.id})" class="edit-button">✏️ Edit</button>
-                <button onclick="generateReport()" class="report-button">📩 Send Report</button>
+                <button onclick="generateReport('${login}')" class="report-button">📩 Send Report</button>
               </div>
             `;
             matchesList.appendChild(matchItem);
@@ -162,12 +169,12 @@
     });
 
     function editMatch(id) {
-      window.location.href = `edit-match.html?id=${id}`;
+      window.location.href = `{{ url_for('edit_match_page') }}?id=${id}`;
     }
 
-    function generateReport() {
-      const login = sessionStorage.getItem('userLogin');
-      fetch(`http://127.0.0.1:5000/send_report_by_login/${login}`, {
+    function generateReport(login) {
+      if (!login) return alert('Login missing. Please re-login.');
+      fetch(`${BASE_URL}/send_report_by_login/${login}`, {
         method: 'POST',
         credentials: 'include'
       })

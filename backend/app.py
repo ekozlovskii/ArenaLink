@@ -1,8 +1,8 @@
 import os
-from flask import Flask, request, jsonify, Response, make_response, session
+from flask import Flask, request, jsonify, Response, make_response, session, send_from_directory, render_template
 from flask_cors import CORS
-from models import db, User, Match, Ticket
-from datetime import datetime,  timedelta, UTC
+from models import db, User, Match, Ticket, TicketHistory, Stadium, Sector, Row
+from datetime import datetime, timedelta, UTC
 import jwt
 from dotenv import load_dotenv
 import smtplib
@@ -11,13 +11,8 @@ import pandas as pd
 from io import BytesIO
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from models import Stadium, Sector, Row
-from flask import send_from_directory
-
-
-
-
+import webbrowser
+import threading
 
 # Загружаем переменные окружения из .env файла
 load_dotenv()
@@ -26,19 +21,21 @@ load_dotenv()
 if not os.getenv('FLASK_SECRET_KEY') or not os.getenv('JWT_SECRET_KEY'):
     raise ValueError("Ошибка: Отсутствуют FLASK_SECRET_KEY или JWT_SECRET_KEY в .env файле")
 
-# ✅ Создаем ОДИН экземпляр Flask
-static_dir = os.path.join(os.path.dirname(__file__), 'static')
-app = Flask(__name__, static_folder='static')
-base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))# Формируем путь к базе данных
+# ✅ Создаем экземпляр Flask
+app = Flask(__name__, static_folder='static', template_folder='templates')
+
+# Разрешаем CORS
+CORS(app, supports_credentials=True, origins="http://127.0.0.1:5500")
+
+# Конфигурация базы данных
+base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 instance_path = os.path.join(base_dir, 'instance')
 db_path = os.path.join(instance_path, 'arenalink.db')
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY', 'fallback_secret')
 
-
-
-# Инициализация базы данных с привязкой к приложению
+# Инициализация базы данных
 db.init_app(app)
 
 def initialize_schema_from_file(filepath):
@@ -47,31 +44,19 @@ def initialize_schema_from_file(filepath):
     with db.engine.connect() as connection:
         connection.connection.executescript(sql_script)  # для SQLite
 
-# Выполняем загрузку схемы один раз, внутри app context
 with app.app_context():
     db.create_all()
     if not db.session.query(Stadium).filter_by(id=1).first():
         initialize_schema_from_file('instance/stadium_schema.sql')
 
-
-
-
-from flask import Flask, request
-from datetime import datetime
-
-
-
-
-# Пример функции фильтрации, как она будет выглядеть в app.py
+# Функция для фильтрации матчей
 def filter_matches_query(base_query):
-    # Извлекаем параметры фильтрации из запроса
     name = request.args.get('name')
     min_price = request.args.get('min_price', type=float)
     max_price = request.args.get('max_price', type=float)
     after_date = request.args.get('after_date')
     before_date = request.args.get('before_date')
 
-    # Применяем фильтры по условию
     if name:
         base_query = base_query.filter(
             (Match.match_name.ilike(f'%{name}%')) |
@@ -88,9 +73,6 @@ def filter_matches_query(base_query):
 
     return base_query
 
-"Это будет вставлено в endpoint /matches перед .all()"
-
-
 @app.after_request
 def after_request(response):
     response.headers['Access-Control-Allow-Origin'] = 'http://127.0.0.1:5500'
@@ -99,19 +81,78 @@ def after_request(response):
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
     return response
 
-# Consolidated Logout Route
-@app.route('/logout', methods=['POST', 'OPTIONS'])
-def user_logout():
-    if request.method == 'OPTIONS':
-        return jsonify({"message": "Preflight accepted"}), 200
-    response = jsonify({"message": "Logged out successfully"})
-    response.delete_cookie("auth_token")
-    return response, 200
 
-# Получаем SECRET_KEY для токенов
+# ------------------------ HTML Рендеринг ------------------------
+
+@app.route('/')
+def main_logit_page():
+    return render_template('main_logit_page.html')
+
+@app.route('/main')
+def main_page():
+    return render_template('main.html')
+
+@app.route('/login')
+def login_page():
+    return render_template('login.html')
+
+@app.route('/login-step2')
+def login_step2_page():
+    return render_template('login-step2.html')
+
+@app.route('/fan-dashboard')
+def fan_dashboard():
+    return render_template('fan-dashboard.html')
+
+@app.route('/fan-matches')
+def fan_matches():
+    return render_template('fan-matches.html')
+
+@app.route('/fan-settings')
+def fan_settings():
+    return render_template('fan-settings.html')
+
+@app.route('/fan-registration')
+def fan_registration():
+    return render_template('fan-registration.html')
+
+@app.route('/organizer-dashboard')
+def organizer_dashboard():
+    return render_template('organizer-dashboard.html')
+
+@app.route('/organizer-page')
+def organizer_page():
+    return render_template('organizer-page.html')
+
+@app.route('/settings-orgonizer')
+def settings_organizer():
+    return render_template('settings-orgonizer.html')
+
+@app.route('/add-match')
+def add_match_page():
+    return render_template('add-match.html')
+
+@app.route('/edit-match')
+def edit_match_page():
+    return render_template('edit-match.html')
+
+@app.route('/match-details')
+def match_details_page():
+    return render_template('match-details.html')
+
+@app.route('/my-matches')
+def my_matches_page():
+    return render_template('my-matches.html')
+
+
+# ---- JWT и Аутентификация ----
+
+from flask import render_template  # Добавляем, если ты хочешь позже отдавать HTML
+
+# Получаем секретный ключ для токенов
 SECRET_KEY = os.getenv('JWT_SECRET_KEY')
 
-# Функция для генерации JWT токена
+# Генерация JWT токена
 def create_jwt(user_id: int, role: str) -> str:
     payload = {
         "user_id": user_id,
@@ -120,13 +161,36 @@ def create_jwt(user_id: int, role: str) -> str:
     }
     return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 
-# Папка для загрузки файлов
-UPLOAD_FOLDER = 'instance/uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+# Проверка токена из cookies
+def get_user_from_token():
+    token = request.cookies.get("auth_token")
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        return payload["user_id"]
+    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+        return None
 
+# Preflight для логина
+@app.route('/login', methods=['OPTIONS'])
+def login_options():
+    response = jsonify({"message": "Preflight for login accepted"})
+    response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response, 200
 
-# ✅ Первый эндпоинт для проверки токена
+# Logout + удаление куки
+@app.route('/logout', methods=['POST', 'OPTIONS'])
+def user_logout():
+    if request.method == 'OPTIONS':
+        return jsonify({"message": "Preflight accepted"}), 200
+    response = jsonify({"message": "Logged out successfully"})
+    response.delete_cookie("auth_token")
+    return response, 200
+
+# Проверка JWT-токена и возвращение информации о пользователе
 @app.route('/check-auth', methods=['GET', 'OPTIONS'])
 def check_auth():
     if request.method == 'OPTIONS':
@@ -157,18 +221,12 @@ def check_auth():
     except jwt.InvalidTokenError:
         return jsonify({'authenticated': False, 'error': 'Invalid token'}), 401
 
-
-# ✅ Второй эндпоинт для проверки активности
+# Проверка активности / тестовый пинг
 @app.route('/check-auth-status', methods=['GET'])
 def check_auth_status():
     return jsonify({"message": "Check-auth endpoint is active"}), 200
 
-
-
-
-
-
-# Эндпоинт для проверки выдачи токена
+# Простой тест токена
 @app.route('/token-test', methods=['GET'])
 def token_test():
     token = request.cookies.get("auth_token")
@@ -182,27 +240,6 @@ def token_test():
             return jsonify({"valid": False, "error": "Invalid token"}), 401
     return jsonify({"valid": False, "error": "No token found"}), 401
 
-# Декоратор для проверки и извлечения user_id из JWT
-def get_user_from_token():
-    token = request.cookies.get("auth_token")
-    if not token:
-        return None
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-        return payload["user_id"]
-    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
-        return None
-
-
-# ✅ Эндпоинт для обработки preflight-запросов (устранение ошибки 404 на OPTIONS /login)
-@app.route('/login', methods=['OPTIONS'])
-def login_options():
-    response = jsonify({"message": "Preflight for login accepted"})
-    response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Credentials', 'true')
-    return response, 200
-
 
 
 
@@ -211,11 +248,10 @@ def login_options():
 @app.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
-    if not data or 'login' not in data or 'password' not in data:
-        return jsonify({'error': 'Invalid data format'}), 400
+    if not data or 'login' not in data or 'password' not in data or 'name' not in data:
+        return jsonify({'error': 'Missing required fields'}), 400
 
-    existing_user = User.query.filter_by(login=data['login']).first()
-    if existing_user:
+    if User.query.filter_by(login=data['login']).first():
         return jsonify({'error': 'This login is already taken'}), 400
 
     new_user = User(
@@ -223,15 +259,13 @@ def register():
         name=data['name'],
         password=data['password'],
         role='fan',
-        email=data.get('email', None),  # 📧 Добавлено email (может быть пустым)
+        email=data.get('email'),
         date_create=datetime.now(),
         date_update=datetime.now()
     )
-
     db.session.add(new_user)
     db.session.commit()
     return jsonify({'message': 'Fan registered successfully!'}), 201
-
 
 
 @app.route('/register_organizer', methods=['POST'])
@@ -244,28 +278,35 @@ def register_organizer():
     file.save(file_path)
 
     data = request.form
-    existing_user = User.query.filter_by(login=data['login']).first()
-    if existing_user:
+    required_fields = ['login', 'password', 'organization', 'contact']
+    if any(field not in data for field in required_fields):
+        return jsonify({'error': 'Missing required form fields'}), 400
+
+    if User.query.filter_by(login=data['login']).first():
         return jsonify({'error': 'This login is already taken'}), 400
 
     new_organizer = User(
-    login=data['login'],
-    name=data['organization'],
-    password=data['password'],
-    role='organizer',
-    contact=data['contact'],
-    email=data.get('email'),  # <-- добавлено
-    file=file_path
+        login=data['login'],
+        name=data['organization'],
+        password=data['password'],
+        role='organizer',
+        contact=data['contact'],
+        email=data.get('email'),
+        file=file_path,
+        date_create=datetime.now(),
+        date_update=datetime.now()
     )
     db.session.add(new_organizer)
     db.session.commit()
     return jsonify({'message': 'Organizer registered successfully!'}), 201
 
 
-# Эндпоинт для входа (обновлен с куки-сохранением)
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
+    if not data or 'login' not in data or 'password' not in data:
+        return jsonify({'error': 'Missing login or password'}), 400
+
     user = User.query.filter_by(login=data['login']).first()
     if user and user.password == data['password']:
         token = create_jwt(user.id, user.role)
@@ -282,27 +323,29 @@ def login():
             secure=False,
             samesite='Lax',
             path='/',
-            max_age=180
+            max_age=3600  # 1 час
         )
-        print(f"Auth token set in cookie for user {user.id}")
+        print(f"✅ Auth token set for user {user.login}")
         return response, 200
+
     return jsonify({"error": "Invalid login or password"}), 401
 
 
-# Эндпоинт для добавления данных к пользователю с использованием user_id из токена
 @app.route('/user/data', methods=['POST'])
 def add_user_data():
     user_id = get_user_from_token()
     if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
-    
+
     data = request.get_json()
     user = User.query.get(user_id)
-    if user:
-        user.additional_info = data.get('additional_info')
-        db.session.commit()
-        return jsonify({"message": "Data added successfully"}), 200
-    return jsonify({"error": "User not found"}), 404
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    user.additional_info = data.get('additional_info')
+    user.date_update = datetime.now()
+    db.session.commit()
+    return jsonify({"message": "Data added successfully"}), 200
 
 
 
@@ -315,27 +358,32 @@ def get_organizer_matches():
         return jsonify({'error': 'Unauthorized'}), 401
 
     matches = Match.query.filter_by(created_by=user_id).all()
-    result = [
-        {
-            'id': m.match_id,
-            'match_name': m.match_name,
-            'stadium_name': m.stadium_name,
-            'date_time': m.date_time.strftime('%Y-%m-%d %H:%M'),
-            'ticket_quantity': m.ticket_quantity,
-            'ticket_price': float(m.ticket_price)
-        }
-        for m in matches
-    ]
+    result = []
+
+    for match in matches:
+        sold_or_reserved = Ticket.query.filter(
+            Ticket.match_id == match.match_id,
+            Ticket.status.in_(['sold', 'reserved'])
+        ).count()
+
+        result.append({
+            'id': match.match_id,
+            'match_name': match.match_name,
+            'stadium_name': match.stadium_name,
+            'date_time': match.date_time.strftime('%Y-%m-%d %H:%M'),
+            'match_type': match.match_type,
+            'tickets_sold': sold_or_reserved,
+            'ticket_quantity': match.ticket_quantity
+        })
+
     return jsonify(result), 200
 
 
 
 @app.route('/matches', methods=['GET'])
-@app.route('/matches', methods=['GET'])
 def get_matches():
     query = Match.query
 
-    # Получаем параметры фильтрации
     name = request.args.get('name')
     min_price = request.args.get('min_price', type=float)
     max_price = request.args.get('max_price', type=float)
@@ -352,21 +400,27 @@ def get_matches():
     if max_price is not None:
         query = query.filter(Match.ticket_price <= max_price)
     if after_date:
-        query = query.filter(Match.date_time >= datetime.fromisoformat(after_date))
+        try:
+            query = query.filter(Match.date_time >= datetime.fromisoformat(after_date))
+        except ValueError:
+            return jsonify({'error': 'Invalid after_date format'}), 400
     if before_date:
-        query = query.filter(Match.date_time <= datetime.fromisoformat(before_date))
+        try:
+            query = query.filter(Match.date_time <= datetime.fromisoformat(before_date))
+        except ValueError:
+            return jsonify({'error': 'Invalid before_date format'}), 400
 
     matches = query.all()
 
     result = [
         {
-            'id': m.match_id,
-            'name': m.match_name,
-            'stadium': m.stadium_name,
-            'date': m.date_time.strftime('%Y-%m-%d %H:%M'),
-            'ticket_price': str(m.ticket_price)
+            'id': match.match_id,
+            'name': match.match_name,
+            'stadium': match.stadium_name,
+            'date': match.date_time.strftime('%Y-%m-%d %H:%M'),
+            'ticket_price': str(match.ticket_price)
         }
-        for m in matches
+        for match in matches
     ]
     return jsonify(result), 200
 
@@ -374,10 +428,16 @@ def get_matches():
 @app.route('/get_match/<int:match_id>', methods=['GET'])
 def get_match(match_id):
     match = Match.query.get(match_id)
-    
-    # ✅ Добавляем проверку на отсутствие матча или даты
+
     if not match or not match.date_time:
         return jsonify({'error': 'Match not found or date missing'}), 404
+
+    # Собираем цены по каждому сектору
+    sector_prices = {}
+    tickets = Ticket.query.filter_by(match_id=match_id).all()
+    for ticket in tickets:
+        if ticket.sector and ticket.price is not None:
+            sector_prices[ticket.sector] = float(ticket.price)
 
     return jsonify({
         'id': match.match_id,
@@ -386,10 +446,14 @@ def get_match(match_id):
         'stadium': match.stadium_name,
         'match_type': match.match_type,
         'ticket_quantity': match.ticket_quantity,
-        'ticket_price': str(match.ticket_price),
+        'sector_prices': sector_prices,
         'created_by': match.created_by,
+        'organizer_login': match.created_by_user.login,  # 👈 добавляем
         'stadium_image': match.stadium_image
     }), 200
+
+
+
 
 
 
@@ -401,87 +465,81 @@ def add_match():
 
     try:
         data = request.form
+        match_name = data.get('match_name')
+        date_time = datetime.strptime(data.get('date_time'), '%Y-%m-%dT%H:%M')
+
         # Проверка на дубликат матча
         existing_match = Match.query.filter_by(
-            match_name=data.get('match_name'),
-            date_time=datetime.strptime(data.get('date_time'), '%Y-%m-%dT%H:%M'),
+            match_name=match_name,
+            date_time=date_time,
             created_by=user_id
         ).first()
-
         if existing_match:
             return jsonify({'error': 'Match with this name and time already exists.'}), 400
 
         stadium_choice = data.get('stadium_choice')
+        stadium_name = None
         stadium_plan_path = None
         stadium_image_path = None
 
         if stadium_choice == 'arenalink':
-            stadium_id = 1
             stadium_name = 'ArenaLink Stadium'
-            stadium_plan_path = None
             stadium_image_path = '/static/images/arenalink_stadium.jpg'
         else:
-            stadium_id = None
             stadium_name = data.get('stadium_name')
-
             if 'stadium_plan' in request.files:
                 plan_file = request.files['stadium_plan']
-                if plan_file and plan_file.filename.endswith('.csv'):
+                if plan_file.filename.endswith('.csv'):
                     stadium_plan_path = os.path.join(app.config['UPLOAD_FOLDER'], plan_file.filename)
                     plan_file.save(stadium_plan_path)
 
             if 'stadium_image' in request.files:
                 image_file = request.files['stadium_image']
-                if image_file and image_file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+                if image_file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
                     stadium_image_path = os.path.join(app.config['UPLOAD_FOLDER'], image_file.filename)
                     image_file.save(stadium_image_path)
 
         new_match = Match(
-            match_name=data.get('match_name'),
-            date_time=datetime.strptime(data.get('date_time'), '%Y-%m-%dT%H:%M'),
+            match_name=match_name,
+            date_time=date_time,
             stadium_name=stadium_name,
             stadium_plan=stadium_plan_path,
             stadium_image=stadium_image_path,
             match_type=data.get('match_type'),
-            ticket_quantity=int(data.get('ticket_quantity', 0)),
-            ticket_price=float(data.get('ticket_price', 0)),  # используется как default
+            ticket_quantity=0,
+            ticket_price=float(data.get('ticket_price', 0)),
             created_by=user_id
         )
         db.session.add(new_match)
-        db.session.flush()  # получаем match_id
+        db.session.flush()
 
-        # 🧩 Если выбран ArenaLink Stadium — сохраняем цены по секторам
+        # Если выбран ArenaLink Stadium — добавим билеты по секторам
         if stadium_choice == 'arenalink':
             sectors = Sector.query.filter_by(stadium_id=1).all()
             for sector in sectors:
                 price_field = f'sector_price_{sector.name}'
                 if price_field in data:
-                    ticket_count = 0
+                    sector_price = float(data[price_field])
                     for row in sector.rows:
-                        ticket_count += row.seat_count
                         for seat_num in range(1, row.seat_count + 1):
-                            ticket = Ticket(
+                            db.session.add(Ticket(
                                 match_id=new_match.match_id,
                                 sector=sector.name,
                                 row=row.number,
                                 seat=seat_num,
-                                price=float(data[price_field]),
+                                price=sector_price,
                                 current_owner=None,
                                 status='available'
-                            )
-                            db.session.add(ticket)
-                    new_match.ticket_quantity += ticket_count
+                            ))
+                            new_match.ticket_quantity += 1
 
         db.session.commit()
         return jsonify({'message': 'Match added successfully!'}), 201
 
     except Exception as e:
-        print(f"❌ ERROR while adding match: {e}")  # <-- это напечатает ошибку в терминал
+        print(f"❌ ERROR while adding match: {e}")
         db.session.rollback()
         return jsonify({'error': 'Failed to add match', 'details': str(e)}), 500
-
-
-
 
 
 @app.route('/update_match', methods=['POST'])
@@ -493,18 +551,34 @@ def update_match():
     if not match:
         return jsonify({'error': 'Match not found'}), 404
 
-    match.match_name = data['match_name']
-    match.date_time = datetime.strptime(data['date_time'], '%Y-%m-%dT%H:%M')
-    match.stadium_name = data['stadium_name']
-    match.ticket_quantity = int(data['ticket_quantity'])
-    match.ticket_price = float(data['ticket_price'])
+    try:
+        match.match_name = data['match_name']
+        match.date_time = datetime.strptime(data['date_time'], '%Y-%m-%dT%H:%M')
+        match.stadium_name = data['stadium_name']
+        match.match_type = data.get('match_type', match.match_type)
+        match.ticket_quantity = int(data['ticket_quantity'])
 
-    # Обновляем match_type только если оно передано
-    if 'match_type' in data:
-        match.match_type = data['match_type']
+        # Удаляем старые sector_price
+        SectorPrice.query.filter_by(match_id=match.match_id).delete()
 
-    db.session.commit()
-    return jsonify({'message': 'Match updated successfully!'}), 200
+        # Добавляем новые sector_price из формы
+        for key in data:
+            if key.startswith('sector_price_'):
+                sector = key.replace('sector_price_', '')
+                price = float(data[key])
+                db.session.add(SectorPrice(
+                    match_id=match.match_id,
+                    sector=sector,
+                    price=price
+                ))
+
+        db.session.commit()
+        return jsonify({'message': 'Match updated successfully!'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to update match', 'details': str(e)}), 500
+
 
 
 # ------------------------ Отправка отчета о матчах для организатора ------------------------
@@ -520,28 +594,75 @@ def send_report_by_login(login):
     if not matches:
         return jsonify({'error': 'No matches found for this organizer'}), 404
 
-    # English column names
-    data = [{
-        'Match Name': m.match_name,
-        'Date & Time': m.date_time.strftime('%Y-%m-%d %H:%M'),
-        'Stadium': m.stadium_name,
-        'Match Type': m.match_type.capitalize(),
-        'Tickets Left': m.ticket_quantity,
-        'Ticket Price (₽)': float(m.ticket_price)
-    } for m in matches]
+    import io
+    output = io.BytesIO()
 
-    df = pd.DataFrame(data)
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        for match in matches:
+            all_tickets = Ticket.query.filter_by(match_id=match.match_id).all()
+            total = len(all_tickets)
+            occupied = sum(1 for t in all_tickets if t.status in ['sold', 'reserved'])
+            revenue = sum(float(t.price or 0) for t in all_tickets if t.status == 'sold')  # revenue = только sold
+            fill = f"{round((occupied / total) * 100)}%" if total else "0%"
+            avg_price = round(revenue / occupied, 2) if occupied else 0
 
-    subject = "📊 Match Report"
-    body = (
-        f"Hello {user.name},\n\n"
-        f"Attached is your match report in Excel format.\n\n"
-        f"Best regards,\nArenaLink Team"
-    )
+            rows = [{
+                'Match Name': match.match_name,
+                'Date & Time': match.date_time.strftime('%Y-%m-%d %H:%M'),
+                'Stadium': match.stadium_name,
+                'Match Type': (match.match_type or '').capitalize(),
+                'Tickets Used': f'{occupied}/{total}',
+                'Fill %': fill,
+                'Total Revenue (₽)': round(revenue, 2),
+                'Average Ticket Price (₽)': avg_price
+            }]
 
-    send_email_with_excel(user.email, subject, body, df)
+            # Статистика по секторам
+            sector_data = {}
+            for t in all_tickets:
+                if not t.sector:
+                    continue
+                if t.sector not in sector_data:
+                    sector_data[t.sector] = {'occupied': 0, 'total': 0, 'revenue': 0.0}
+                sector_data[t.sector]['total'] += 1
+                if t.status in ['sold', 'reserved']:
+                    sector_data[t.sector]['occupied'] += 1
+                if t.status == 'sold':
+                    sector_data[t.sector]['revenue'] += float(t.price or 0)
 
-    return jsonify({'message': 'The match report was successfully sent to the organizer\'s email'}), 200
+            for sector, info in sorted(sector_data.items()):
+                occ = info['occupied']
+                tot = info['total']
+                rev = info['revenue']
+                fill_s = f"{round((occ / tot) * 100)}%" if tot else "0%"
+                avg_s = round(rev / occ, 2) if occ else 0
+
+                rows.append({
+                    'Match Name': f'↳ Sector {sector}',
+                    'Date & Time': '',
+                    'Stadium': '',
+                    'Match Type': '',
+                    'Tickets Used': f"{occ}/{tot}",
+                    'Fill %': fill_s,
+                    'Total Revenue (₽)': round(rev, 2),
+                    'Average Ticket Price (₽)': avg_s
+                })
+
+            df = pd.DataFrame(rows)
+            sheet_name = match.match_name[:31].replace('/', '_').replace('\\', '_')
+            df.to_excel(writer, index=False, sheet_name=sheet_name)
+
+    output.seek(0)
+
+    subject = "📊 Match Report (Multi-Sheet)"
+    body = f"Hello {user.name},\n\nAttached is your match report with sector stats on separate sheets.\n\nBest regards,\nArenaLink Team"
+
+    send_email_with_excel(user.email, subject, body, output, filename="match_report.xlsx")
+    return jsonify({'message': '📩 Report successfully sent'}), 200
+
+
+
+
 
 @app.route('/api/sectors/<int:stadium_id>', methods=['GET'])
 def get_sectors_by_stadium(stadium_id):
@@ -549,10 +670,6 @@ def get_sectors_by_stadium(stadium_id):
     return jsonify({
         "sectors": [s.name for s in sectors]
     })
-
-
-
-
 
 
 
@@ -567,6 +684,8 @@ def book_ticket():
 
         data = request.get_json()
         ticket_id = data.get('ticket_id')
+        if not ticket_id:
+            return jsonify({'error': 'ticket_id is required'}), 400
 
         ticket = Ticket.query.get(ticket_id)
         if not ticket or ticket.status != 'available':
@@ -575,32 +694,38 @@ def book_ticket():
         ticket.current_owner = user_id
         ticket.status = 'reserved'
         ticket.date_update = datetime.utcnow()
+
+        history = TicketHistory(
+            ticket_id=ticket.ticket_id,
+            previous_owner=None,
+            new_owner=user_id,
+            status='sold',
+            date_create=datetime.utcnow()
+        )
+        db.session.add(history)
         db.session.commit()
 
         user = User.query.get(user_id)
         match = Match.query.get(ticket.match_id)
 
+        # Отправка письма (если есть email)
         if user and user.email:
             subject = "🎟 Ticket Booking Confirmation"
-            body = f"""
-            Hello {user.name}, 
-        
-            You have successfully booked a ticket for:
-            🏟 Match: {match.match_name}
-            📅 Date: {match.date_time.strftime('%Y-%m-%d %H:%M')}
-            🏟 Stadium: {match.stadium_name}
-
-            Thank you for choosing ArenaLink!
-            """
+            body = (
+                f"Hello {user.name},\n\n"
+                f"You have successfully booked a ticket for:\n"
+                f"🏟 Match: {match.match_name}\n"
+                f"📅 Date: {match.date_time.strftime('%Y-%m-%d %H:%M')}\n"
+                f"🏟 Stadium: {match.stadium_name}\n\n"
+                f"Thank you for choosing ArenaLink!"
+            )
             send_email(user.email, subject, body)
 
         return jsonify({'message': 'Ticket booked successfully!'})
 
     except Exception as e:
-        print(f"❌ Booking failed: {e}")  # <-- важно!
+        print(f"❌ Booking failed: {e}")
         return jsonify({'error': 'Booking failed', 'details': str(e)}), 500
-
-
 
 
 
@@ -623,27 +748,32 @@ def cancel_booking():
     ticket.status = 'available'
     ticket.current_owner = None
     ticket.date_update = datetime.utcnow()
+
+    history = TicketHistory(
+        ticket_id=ticket.ticket_id,
+        previous_owner=user_id,
+        new_owner=None,
+        status='available',
+        date_create=datetime.utcnow()
+    )
+    db.session.add(history)
     db.session.commit()
 
-    # 📨 Отправка email
     if user and user.email:
         subject = "🚫 Ticket Cancellation Confirmation"
-        body = f"""
-        Hello {user.name},
-
-        You have successfully **cancelled** your ticket for:
-        🏟 Match: {match.match_name}
-        📅 Date: {match.date_time.strftime('%Y-%m-%d %H:%M')}
-        🏟 Stadium: {match.stadium_name}
-
-        Your ticket has been refunded.
-
-        Best regards,  
-        ArenaLink Team
-        """
+        body = (
+            f"Hello {user.name},\n\n"
+            f"You have successfully **cancelled** your ticket for:\n"
+            f"🏟 Match: {match.match_name}\n"
+            f"📅 Date: {match.date_time.strftime('%Y-%m-%d %H:%M')}\n"
+            f"🏟 Stadium: {match.stadium_name}\n\n"
+            f"Your ticket has been refunded.\n\n"
+            f"Best regards,\nArenaLink Team"
+        )
         send_email(user.email, subject, body)
 
     return jsonify({'message': 'Booking cancelled'}), 200
+
 
 
 @app.route('/available_tickets/<int:match_id>', methods=['GET'])
@@ -660,25 +790,33 @@ def available_tickets(match_id):
 
 
 
+
 # ------------------------ ПОКАЗ ЗАБРОНИРОВАННОГО ------------------------
 @app.route('/my_matches/<int:user_id>', methods=['GET'])
 def my_matches(user_id):
     tickets = Ticket.query.filter_by(current_owner=user_id, status='reserved').all()
-    matches = [Match.query.get(ticket.match_id) for ticket in tickets]
+    result = []
 
-    result = [
-        {
-            'id': match.match_id,
-            'name': match.match_name,
-            'stadium': match.stadium_name,
-            'date': match.date_time.strftime('%Y-%m-%d %H:%M')
-        } for match in matches if match is not None
-    ]
+    for ticket in tickets:
+        match = Match.query.get(ticket.match_id)
+        if match:
+            result.append({
+                'ticket_id': ticket.ticket_id,
+                'name': match.match_name,
+                'stadium': match.stadium_name,
+                'date': match.date_time.strftime('%Y-%m-%d %H:%M'),
+                'sector': ticket.sector,
+                'row': ticket.row,
+                'seat': ticket.seat
+            })
+
     return jsonify(result), 200
+
+
 
 # ------------------------ ОТПРАВКА ПИСЕМ ------------------------
 
-def send_email_with_excel(to_email, subject, body, df: pd.DataFrame, filename="report.xlsx"):
+def send_email_with_excel(to_email, subject, body, excel_stream: BytesIO, filename="report.xlsx"):
     sender_email = "arenalink@yandex.ru"
     sender_password = "rzqkhuooosggqskq"
     smtp_server = "smtp.yandex.ru"
@@ -691,11 +829,7 @@ def send_email_with_excel(to_email, subject, body, df: pd.DataFrame, filename="r
 
     msg.attach(MIMEText(body, "plain"))
 
-    # Сохраняем Excel в память
-    excel_stream = BytesIO()
-    df.to_excel(excel_stream, index=False)
-    excel_stream.seek(0)
-
+    excel_stream.seek(0)  # 🔁 обязательно перед чтением
     attachment = MIMEApplication(excel_stream.read(), _subtype='xlsx')
     attachment.add_header('Content-Disposition', 'attachment', filename=filename)
     msg.attach(attachment)
@@ -708,6 +842,8 @@ def send_email_with_excel(to_email, subject, body, df: pd.DataFrame, filename="r
     except Exception as e:
         print(f"❌ Failed to send email with Excel: {e}")
 
+
+
 def send_email(to_email, subject, body):
     sender_email = "arenalink@yandex.ru"
     sender_password = "rzqkhuooosggqskq"
@@ -718,7 +854,6 @@ def send_email(to_email, subject, body):
     msg["Subject"] = subject
     msg["From"] = sender_email
     msg["To"] = to_email
-
     msg.attach(MIMEText(body, "plain"))
 
     try:
@@ -730,6 +865,7 @@ def send_email(to_email, subject, body):
         print(f"❌ Failed to send email: {e}")
 
 
+
 # ------------------------ смена имени и пароля ------------------------
 
 @app.route('/update_user/<int:user_id>', methods=['POST'])
@@ -739,12 +875,15 @@ def update_user(user_id):
         return jsonify({"error": "User not found"}), 404
 
     data = request.get_json()
-    if 'name' in data:
+
+    if 'name' in data and data['name']:
         user.name = data['name']
-    if 'password' in data:
+    if 'password' in data and data['password']:
         user.password = data['password']
+
     db.session.commit()
     return jsonify({"message": "User updated successfully"}), 200
+
 
 
 
@@ -753,4 +892,9 @@ def update_user(user_id):
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+
+    def open_browser():
+        webbrowser.open_new("http://127.0.0.1:5000/")
+
+    threading.Timer(1.0, open_browser).start()
     app.run(host='127.0.0.1', port=5000, debug=True)
