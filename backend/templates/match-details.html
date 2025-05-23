@@ -111,6 +111,18 @@
       margin-left: auto;
       margin-right: auto;
     }
+    .back-button {
+      background: white;
+      color: #6c757d;
+      border: 2px solid #6c757d;
+    }
+
+    .back-button:hover {
+      background: #6c757d;
+      color: white;
+    }
+
+
   
     /* 🎯 ВАЖНО: это делает кнопки и input в окне оплаты широкими */
     #payment-modal button,
@@ -120,6 +132,7 @@
       max-width: none;
       margin: 10px 0;
     }
+
   </style>  
 </head>
 <body>
@@ -143,12 +156,12 @@
 
       <p id="selected-price"></p>
       <button id="pay-button">Proceed to Payment</button>
-      <button onclick="window.history.back()">Cancel</button>
+      <button onclick="window.history.back()" class="back-button">Cancel</button>
     </div>
     <div id="organizer-actions" style="margin-top: 20px; display: none;">
       <button id="edit-button">✏️ Edit</button>
       <button id="report-button">📩 Send Report</button>
-      <button onclick="window.history.back()">Back</button>
+      <button onclick="window.history.back()" class="back-button">Back</button>
     </div>    
   </div>
   
@@ -161,7 +174,8 @@
     <input type="text" id="expiry-date" placeholder="Expiry Date (MM/YY)" required>
     <input type="text" id="cvv" placeholder="CVV (3 digits)" maxlength="3" inputmode="numeric" required>
     <button onclick="submitPayment()">Buy</button>
-    <button onclick="closePayment()">Cancel</button>
+    <button onclick="closePayment()" class="back-button">Cancel</button>
+
   </div>
 
   <script>
@@ -292,7 +306,7 @@
     }
 
     document.getElementById('edit-button').addEventListener('click', () => {
-      window.location.href = `edit-match.html?id=${matchId}`;
+      window.location.href = `/edit-match?id=${matchId}`;
     });
 
     document.getElementById('report-button').addEventListener('click', () => {

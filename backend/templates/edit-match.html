@@ -97,8 +97,14 @@
       <label for="stadium_choice">Stadium:</label>
       <select id="stadium_choice" name="stadium_choice" required>
         <option value="arenalink">ArenaLink Stadium</option>
+        <option value="existing">Choose Existing Stadium</option>
         <option value="custom">Upload Your Own</option>
       </select>
+
+      <div id="existing-stadium-section" style="display:none;">
+        <label for="existing_stadium">Select Existing Stadium:</label>
+        <select id="existing_stadium" name="existing_stadium"></select>
+      </div>
 
       <div id="custom-stadium-section" style="display:none;">
         <label for="stadium_name">Stadium Name:</label>
@@ -130,35 +136,62 @@
     const form = document.getElementById('edit-match-form');
     const stadiumChoice = document.getElementById('stadium_choice');
     const customSection = document.getElementById('custom-stadium-section');
+    const existingSection = document.getElementById('existing-stadium-section');
+    const existingSelect = document.getElementById('existing_stadium');
     const sectorPrices = document.getElementById('arenalink-sector-prices');
     const formContainer = document.querySelector('.container');
     const dashboardUrl = document.body.dataset.dashboardUrl;
     const matchId = new URLSearchParams(window.location.search).get('id');
 
+    function renderSectorInputs(sectors) {
+      sectorPrices.innerHTML = '<h3>Set Prices per Sector</h3>';
+      sectors.forEach(sector => {
+        const label = document.createElement('label');
+        label.innerText = `Sector ${sector}`;
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.name = `sector_price_${sector}`;
+        input.placeholder = '₽';
+        input.required = true;
+        input.style.marginBottom = '10px';
+        sectorPrices.appendChild(label);
+        sectorPrices.appendChild(input);
+      });
+    }
+
     stadiumChoice.addEventListener('change', () => {
       const choice = stadiumChoice.value;
+
       customSection.style.display = choice === 'custom' ? 'block' : 'none';
-      sectorPrices.style.display = choice === 'arenalink' ? 'block' : 'none';
+      existingSection.style.display = choice === 'existing' ? 'block' : 'none';
+      sectorPrices.style.display = (choice === 'arenalink' || choice === 'existing') ? 'block' : 'none';
       formContainer.classList.toggle('expanded', choice !== '');
 
       if (choice === 'arenalink') {
-        fetch(`http://127.0.0.1:5000/api/sectors/${matchId}`)
+        fetch(`http://127.0.0.1:5000/api/sectors/1`)
+          .then(response => response.json())
+          .then(data => renderSectorInputs(data.sectors));
+      } else if (choice === 'existing') {
+        fetch(`http://127.0.0.1:5000/api/stadiums`)
           .then(response => response.json())
           .then(data => {
-            sectorPrices.innerHTML = '<h3>Set Prices per Sector</h3>';
-            data.sectors.forEach(sector => {
-              const label = document.createElement('label');
-              label.innerText = `Sector ${sector}`;
-              const input = document.createElement('input');
-              input.type = 'number';
-              input.name = `sector_price_${sector}`;
-              input.placeholder = '₽';
-              input.required = true;
-              input.style.marginBottom = '10px';
-              sectorPrices.appendChild(label);
-              sectorPrices.appendChild(input);
+            existingSelect.innerHTML = '';
+            data.stadiums.forEach(stadium => {
+              const option = document.createElement('option');
+              option.value = stadium.id;
+              option.textContent = stadium.name;
+              existingSelect.appendChild(option);
             });
           });
+
+        existingSelect.addEventListener('change', () => {
+          const stadiumId = existingSelect.value;
+          if (stadiumId) {
+            fetch(`http://127.0.0.1:5000/api/sectors/${stadiumId}`)
+              .then(response => response.json())
+              .then(data => renderSectorInputs(data.sectors));
+          }
+        });
       } else {
         sectorPrices.innerHTML = '';
       }
@@ -171,15 +204,23 @@
         document.getElementById('match_name').value = match.name;
         document.getElementById('date_time').value = match.date;
         document.getElementById('match_type').value = match.match_type || 'friendly';
-        document.getElementById('stadium_choice').value = match.stadium === 'ArenaLink Stadium' ? 'arenalink' : 'custom';
-        stadiumChoice.dispatchEvent(new Event('change'));
 
-        // Set stadium name if custom
-        if (match.stadium && match.stadium !== 'ArenaLink Stadium') {
+        if (match.stadium === 'ArenaLink Stadium') {
+          stadiumChoice.value = 'arenalink';
+        } else if (match.stadium_id) {
+          stadiumChoice.value = 'existing';
+          setTimeout(() => {
+            stadiumChoice.dispatchEvent(new Event('change'));
+            existingSelect.value = match.stadium_id;
+            existingSelect.dispatchEvent(new Event('change'));
+          }, 200);
+        } else {
+          stadiumChoice.value = 'custom';
           document.getElementById('stadium_name').value = match.stadium;
         }
 
-        // Sector prices
+        stadiumChoice.dispatchEvent(new Event('change'));
+
         setTimeout(() => {
           Object.entries(match.sector_prices || {}).forEach(([sector, price]) => {
             const input = sectorPrices.querySelector(`input[name="sector_price_${sector}"]`);

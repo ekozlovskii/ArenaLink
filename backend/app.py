@@ -13,6 +13,12 @@ from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 import webbrowser
 import threading
+import csv
+from werkzeug.utils import secure_filename
+from io import StringIO
+
+
+
 
 # Загружаем переменные окружения из .env файла
 load_dotenv()
@@ -23,6 +29,8 @@ if not os.getenv('FLASK_SECRET_KEY') or not os.getenv('JWT_SECRET_KEY'):
 
 # ✅ Создаем экземпляр Flask
 app = Flask(__name__, static_folder='static', template_folder='templates')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+app.config['UPLOAD_FOLDER'] = os.path.join(BASE_DIR, 'static', 'uploads')
 
 # Разрешаем CORS
 CORS(app, supports_credentials=True, origins="http://127.0.0.1:5500")
@@ -34,6 +42,10 @@ db_path = os.path.join(instance_path, 'arenalink.db')
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY', 'fallback_secret')
+
+UPLOAD_FOLDER = 'static/uploads'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+ALLOWED_EXTENSIONS = {'csv', 'png', 'jpg', 'jpeg'}
 
 # Инициализация базы данных
 db.init_app(app)
@@ -135,6 +147,7 @@ def add_match_page():
 @app.route('/edit-match')
 def edit_match_page():
     return render_template('edit-match.html')
+
 
 @app.route('/match-details')
 def match_details_page():
@@ -467,79 +480,245 @@ def add_match():
         data = request.form
         match_name = data.get('match_name')
         date_time = datetime.strptime(data.get('date_time'), '%Y-%m-%dT%H:%M')
+        stadium_choice = data.get('stadium_choice')
+        match_type = data.get('match_type')
+        ticket_price_default = float(data.get('ticket_price', 0))
 
-        # Проверка на дубликат матча
+        # Проверка на дубликат
         existing_match = Match.query.filter_by(
             match_name=match_name,
             date_time=date_time,
             created_by=user_id
         ).first()
         if existing_match:
-            return jsonify({'error': 'Match with this name and time already exists.'}), 400
+            return jsonify({'error': 'Match already exists'}), 400
 
-        stadium_choice = data.get('stadium_choice')
         stadium_name = None
-        stadium_plan_path = None
         stadium_image_path = None
+        ticket_quantity = 0
+        stadium_id = None
 
+        # === ArenaLink Stadium ===
         if stadium_choice == 'arenalink':
             stadium_name = 'ArenaLink Stadium'
+            stadium_id = 1
             stadium_image_path = '/static/images/arenalink_stadium.jpg'
-        else:
-            stadium_name = data.get('stadium_name')
-            if 'stadium_plan' in request.files:
-                plan_file = request.files['stadium_plan']
-                if plan_file.filename.endswith('.csv'):
-                    stadium_plan_path = os.path.join(app.config['UPLOAD_FOLDER'], plan_file.filename)
-                    plan_file.save(stadium_plan_path)
+        
+        elif stadium_choice == 'existing':
+            stadium_id = int(data.get('existing_stadium'))
+            stadium = Stadium.query.get(stadium_id)
+            if not stadium:
+                return jsonify({'error': 'Stadium not found'}), 400
+            stadium_name = stadium.name
+            stadium_image_path = stadium.image_url
 
+
+        # === Custom Stadium ===
+        elif stadium_choice == 'custom':
+            stadium_name = data.get('stadium_name')
+
+            # 1. Сохраняем изображение
             if 'stadium_image' in request.files:
                 image_file = request.files['stadium_image']
                 if image_file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-                    stadium_image_path = os.path.join(app.config['UPLOAD_FOLDER'], image_file.filename)
-                    image_file.save(stadium_image_path)
+                    image_filename = secure_filename(image_file.filename)
+                    upload_folder = app.config['UPLOAD_FOLDER']
+                    os.makedirs(upload_folder, exist_ok=True)  # 🟢 создаёт папку, если её нет
+                    image_path = os.path.join(upload_folder, image_filename)
+                    image_file.save(image_path)
+                    stadium_image_path = f'/static/uploads/{image_filename}'
+                else:
+                    return jsonify({'error': 'Invalid stadium image format'}), 400
 
+
+            # 2. Создаём стадион
+            stadium = Stadium(name=stadium_name, image_url=stadium_image_path)
+            db.session.add(stadium)
+            db.session.flush()
+            stadium_id = stadium.id
+
+            # 3. Обрабатываем CSV
+            if 'stadium_plan' in request.files:
+                plan_file = request.files['stadium_plan']
+                if plan_file.filename.endswith('.csv'):
+                    csv_filename = secure_filename(plan_file.filename)
+                    csv_path = os.path.join(app.config['UPLOAD_FOLDER'], csv_filename)
+                    plan_file.save(csv_path)
+
+                    with open(csv_path, newline='', encoding='utf-8') as f:
+                        reader = csv.reader(f)
+                        sector_cache = {}  # key: sector_name → value: Sector object
+
+                        for row in reader:
+                            if len(row) != 3:
+                                print(f"⚠️ Skipping malformed row: {row}")
+                                continue
+
+                            sector_name, row_number_str, seat_count_str = row
+                            sector_name = sector_name.strip()
+                            try:
+                                row_number = int(row_number_str)
+                                seat_count = int(seat_count_str)
+
+                                if sector_name not in sector_cache:
+                                    sector_obj = Sector(name=sector_name, stadium_id=stadium.id)
+                                    db.session.add(sector_obj)
+                                    db.session.flush()
+                                    sector_cache[sector_name] = sector_obj
+                                else:
+                                    sector_obj = sector_cache[sector_name]
+
+                                new_row = Row(sector_id=sector_obj.id, number=row_number, seat_count=seat_count)
+                                db.session.add(new_row)
+
+                                price_field = f'sector_price_{sector_name}'
+                                price = float(data.get(price_field, ticket_price_default))
+
+                                for seat_num in range(1, seat_count + 1):
+                                    db.session.add(Ticket(
+                                        match_id=None,  # временно None
+                                        sector=sector_name,
+                                        row=row_number,
+                                        seat=seat_num,
+                                        price=price,
+                                        current_owner=None,
+                                        status='available'
+                                    ))
+                                    ticket_quantity += 1
+                            except Exception as parse_error:
+                                print(f'⚠️ Error parsing row: {row}, {parse_error}')
+
+                    
+                    db.session.flush()  # гарантирует, что все сектора и строки попадут в базу до создания матча
+                else:
+                    return jsonify({'error': 'Stadium plan must be a .csv file'}), 400
+            else:
+                return jsonify({'error': 'CSV file required for custom stadium'}), 400
+
+        # === Создаём матч ===
         new_match = Match(
             match_name=match_name,
             date_time=date_time,
             stadium_name=stadium_name,
-            stadium_plan=stadium_plan_path,
+            stadium_plan=None,
             stadium_image=stadium_image_path,
-            match_type=data.get('match_type'),
+            match_type=match_type,
             ticket_quantity=0,
-            ticket_price=float(data.get('ticket_price', 0)),
+            ticket_price=ticket_price_default,
             created_by=user_id
         )
         db.session.add(new_match)
+        db.session.flush()  # Чтобы получить match_id
+        # Обновляем билеты без match_id
+        Ticket.query.filter_by(match_id=None, status='available').update(
+            {Ticket.match_id: new_match.match_id}, synchronize_session=False
+        )
         db.session.flush()
 
-        # Если выбран ArenaLink Stadium — добавим билеты по секторам
-        if stadium_choice == 'arenalink':
-            sectors = Sector.query.filter_by(stadium_id=1).all()
+        # === Создаём билеты
+        if stadium_choice in ['arenalink', 'existing']:
+            stadium_id = 1 if stadium_choice == 'arenalink' else stadium_id
+            sectors = Sector.query.filter_by(stadium_id=stadium_id).all()
             for sector in sectors:
                 price_field = f'sector_price_{sector.name}'
-                if price_field in data:
-                    sector_price = float(data[price_field])
-                    for row in sector.rows:
-                        for seat_num in range(1, row.seat_count + 1):
-                            db.session.add(Ticket(
-                                match_id=new_match.match_id,
-                                sector=sector.name,
-                                row=row.number,
-                                seat=seat_num,
-                                price=sector_price,
-                                current_owner=None,
-                                status='available'
-                            ))
-                            new_match.ticket_quantity += 1
+                price = float(data.get(price_field, ticket_price_default))
+                for row in sector.rows:
+                    for seat_num in range(1, row.seat_count + 1):
+                        db.session.add(Ticket(
+                            match_id=new_match.match_id,
+                            sector=sector.name,
+                            row=row.number,
+                            seat=seat_num,
+                            price=price,
+                            current_owner=None,
+                            status='available'
+                        ))
+                        ticket_quantity += 1
 
+        elif stadium_choice == 'custom':
+            sectors = Sector.query.filter_by(stadium_id=stadium_id).all()
+            for sector in sectors:
+                rows = Row.query.filter_by(sector_id=sector.id).all()
+                price_field = f'sector_price_{sector.name}'
+                price = float(data.get(price_field, ticket_price_default))
+                for row in rows:
+                    for seat_num in range(1, row.seat_count + 1):
+                        db.session.add(Ticket(
+                            match_id=new_match.match_id,
+                            sector=sector.name,
+                            row=row.number,
+                            seat=seat_num,
+                            price=price,
+                            current_owner=None,
+                            status='available'
+                        ))
+                        ticket_quantity += 1
+
+        new_match.ticket_quantity = ticket_quantity
         db.session.commit()
-        return jsonify({'message': 'Match added successfully!'}), 201
+        return jsonify({'message': 'Match added successfully'}), 201
 
     except Exception as e:
         print(f"❌ ERROR while adding match: {e}")
         db.session.rollback()
         return jsonify({'error': 'Failed to add match', 'details': str(e)}), 500
+
+@app.route('/api/stadiums', methods=['GET'])
+def get_all_stadiums():
+    stadiums = Stadium.query.all()
+    result = [{'id': s.id, 'name': s.name} for s in stadiums]
+    return jsonify({'stadiums': result})
+
+
+from flask import request, jsonify
+import csv
+import io
+
+@app.route('/delete_match/<int:match_id>', methods=['DELETE'])
+def delete_match(match_id):
+    user_id = get_user_from_token()
+    if not user_id:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    match = Match.query.get(match_id)
+    if not match or match.created_by != user_id:
+        return jsonify({'error': 'Match not found or access denied'}), 404
+
+    # Удалим связанные билеты
+    Ticket.query.filter_by(match_id=match_id).delete()
+    db.session.delete(match)
+    db.session.commit()
+    return jsonify({'message': 'Match deleted successfully'})
+
+
+@app.route('/parse_stadium_csv', methods=['POST'])
+def parse_stadium_csv():
+    try:
+        file = request.files.get('stadium_plan')
+        if not file or not file.filename.endswith('.csv'):
+            return jsonify({'error': 'Invalid CSV file'}), 400
+
+        stream = StringIO(file.stream.read().decode('utf-8'))
+        reader = csv.reader(stream)
+        next(reader)  # skip header
+
+        sectors = set()
+        for row in reader:
+            if len(row) < 3:
+                continue
+            sector = row[0].strip()
+            if sector:
+                sectors.add(sector)
+
+        print(f"✅ Parsed sectors: {sectors}")  # Добавь эту строку
+        return jsonify({'sectors': sorted(sectors)})
+
+    except Exception as e:
+        print(f"❌ CSV parsing error: {e}")
+        return jsonify({'error': 'Failed to parse CSV'}), 500
+
+
+
 
 
 @app.route('/update_match', methods=['POST'])
@@ -716,7 +895,8 @@ def book_ticket():
                 f"You have successfully booked a ticket for:\n"
                 f"🏟 Match: {match.match_name}\n"
                 f"📅 Date: {match.date_time.strftime('%Y-%m-%d %H:%M')}\n"
-                f"🏟 Stadium: {match.stadium_name}\n\n"
+                f"🏟 Stadium: {match.stadium_name}\n"
+                f"🎫 Ticket: Sector {ticket.sector}, Row {ticket.row}, Seat {ticket.seat}\n\n"
                 f"Thank you for choosing ArenaLink!"
             )
             send_email(user.email, subject, body)
@@ -887,14 +1067,31 @@ def update_user(user_id):
 
 
 
+
 # ------------------------ ЗАПУСК СЕРВЕРА ------------------------
+
+# with app.app_context():
+#     names_to_delete = ['Glav Stadion', 'Top Stadium', 'Super Stadium']
+#     stadiums = Stadium.query.filter(Stadium.name.in_(names_to_delete)).all()
+
+#     for stadium in stadiums:
+#         print(f"Удаляем стадион: {stadium.name} (id={stadium.id})")
+#         for sector in stadium.sectors:
+#             for row in sector.rows:
+#                 db.session.delete(row)
+#             db.session.delete(sector)
+#         db.session.delete(stadium)
+
+#     db.session.commit()
+
 
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
 
-    def open_browser():
-        webbrowser.open_new("http://127.0.0.1:5000/")
+    # def open_browser():
+    #     webbrowser.open_new("http://127.0.0.1:5000/")
 
-    threading.Timer(1.0, open_browser).start()
-    app.run(host='127.0.0.1', port=5000, debug=True)
+    # threading.Timer(1.0, open_browser).start()
+    app.run(host='0.0.0.0', port=5000)
+

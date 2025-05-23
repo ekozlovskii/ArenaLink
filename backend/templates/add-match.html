@@ -23,14 +23,9 @@
       border-radius: 20px;
       box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
       width: 400px;
-      max-height: 600px;
-      overflow-y: hidden;
-      text-align: center;
-      transition: max-height 0.5s ease, overflow 0.3s;
-    }
-    .container.expanded {
       max-height: 90vh;
       overflow-y: auto;
+      text-align: center;
     }
     h1 { color: #004d00; margin-bottom: 30px; }
     label {
@@ -95,9 +90,16 @@
       <label for="stadium_choice">Stadium:</label>
       <select id="stadium_choice" name="stadium_choice" required>
         <option value="">-- Select --</option>
-        <option value="arenalink">ArenaLink Stadium</option>
+        <option value="existing">Select from Existing</option>
         <option value="custom">Upload Your Own</option>
       </select>
+
+      <div id="existing-stadium-section" style="display:none;">
+        <label for="existing_stadium">Choose Stadium:</label>
+        <select id="existing_stadium" name="existing_stadium">
+          <option value="">-- Select Stadium --</option>
+        </select>
+      </div>
 
       <div id="custom-stadium-section" style="display:none;">
         <label for="stadium_name">Stadium Name:</label>
@@ -108,6 +110,8 @@
 
         <label for="stadium_image">Upload Stadium Image (PNG/JPG):</label>
         <input type="file" id="stadium_image" name="stadium_image" accept=".png,.jpg,.jpeg">
+
+        <div id="custom-sector-prices"></div>
       </div>
 
       <div id="arenalink-sector-prices" style="display:none;"></div>
@@ -130,14 +134,97 @@
     const stadiumChoice = document.getElementById('stadium_choice');
     const customSection = document.getElementById('custom-stadium-section');
     const sectorPrices = document.getElementById('arenalink-sector-prices');
+    const customPrices = document.getElementById('custom-sector-prices');
     const formContainer = document.querySelector('.container');
     const dashboardUrl = document.body.dataset.dashboardUrl;
 
     stadiumChoice.addEventListener('change', () => {
       const choice = stadiumChoice.value;
 
+      const existingSection = document.getElementById('existing-stadium-section');
+      const existingSelect = document.getElementById('existing_stadium');
+      existingSelect.addEventListener('change', () => {
+      const selectedStadiumId = existingSelect.value;
+      sectorPrices.innerHTML = '';
+
+      if (!selectedStadiumId) return;
+
+      fetch(`http://127.0.0.1:5000/api/sectors/${selectedStadiumId}`)
+        .then(response => response.json())
+        .then(data => {
+          sectorPrices.innerHTML = '<h3>Set Prices per Sector</h3>';
+          sectorPrices.style.display = 'block';
+
+          data.sectors.forEach(sector => {
+            const label = document.createElement('label');
+            label.innerText = `Sector ${sector}`;
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.name = `sector_price_${sector}`;
+            input.placeholder = '₽';
+            input.required = true;
+            input.style.marginBottom = '10px';
+            sectorPrices.appendChild(label);
+            sectorPrices.appendChild(input);
+          });
+        })
+        .catch(err => {
+          console.error('❌ Failed to load sectors for selected stadium:', err);
+          alert('Failed to load sectors for this stadium');
+        });
+    });
+
+      existingSection.style.display = 'none';
+      customSection.style.display = 'none';
+      sectorPrices.style.display = 'none';
+      customPrices.innerHTML = '';
+      formContainer.classList.remove('expanded');
+
+      if (choice === 'custom') {
+        customSection.style.display = 'block';
+        formContainer.classList.add('expanded');
+      } else if (choice === 'arenalink') {
+        sectorPrices.style.display = 'block';
+        formContainer.classList.add('expanded');
+
+        fetch('http://127.0.0.1:5000/api/sectors/1')
+          .then(response => response.json())
+          .then(data => {
+            sectorPrices.innerHTML = '<h3>Set Prices per Sector</h3>';
+            data.sectors.forEach(sector => {
+              const label = document.createElement('label');
+              label.innerText = `Sector ${sector}`;
+              const input = document.createElement('input');
+              input.type = 'number';
+              input.name = `sector_price_${sector}`;
+              input.placeholder = '₽';
+              input.required = true;
+              input.style.marginBottom = '10px';
+              sectorPrices.appendChild(label);
+              sectorPrices.appendChild(input);
+            });
+          });
+      } else if (choice === 'existing') {
+        existingSection.style.display = 'block';
+        formContainer.classList.add('expanded');
+
+        fetch('http://127.0.0.1:5000/api/stadiums')
+          .then(response => response.json())
+          .then(data => {
+            existingSelect.innerHTML = '<option value="">-- Select Stadium --</option>';
+            data.stadiums.forEach(stadium => {
+              const option = document.createElement('option');
+              option.value = stadium.id;
+              option.textContent = stadium.name;
+              existingSelect.appendChild(option);
+            });
+          });
+      }
+
+
       customSection.style.display = choice === 'custom' ? 'block' : 'none';
       sectorPrices.style.display = choice === 'arenalink' ? 'block' : 'none';
+      customPrices.innerHTML = '';
 
       if (choice === 'arenalink' || choice === 'custom') {
         formContainer.classList.add('expanded');
@@ -167,9 +254,40 @@
             console.error('❌ Failed to load sectors:', error);
             alert('Failed to load sectors from ArenaLink Stadium');
           });
-      } else {
-        sectorPrices.innerHTML = '';
       }
+    });
+
+    document.getElementById('stadium_plan').addEventListener('change', function () {
+      const file = this.files[0];
+      const formData = new FormData();
+      formData.append('stadium_plan', file);
+
+      fetch('http://127.0.0.1:5000/parse_stadium_csv', {
+        method: 'POST',
+        body: formData
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.sectors) {
+            customPrices.innerHTML = '<h3>Set Prices per Sector</h3>';
+            data.sectors.forEach(sector => {
+              const label = document.createElement('label');
+              label.innerText = `Sector ${sector}`;
+              const input = document.createElement('input');
+              input.type = 'number';
+              input.name = `sector_price_${sector}`;
+              input.placeholder = '₽';
+              input.required = true;
+              input.style.marginBottom = '10px';
+              customPrices.appendChild(label);
+              customPrices.appendChild(input);
+            });
+          }
+        })
+        .catch(err => {
+          console.error('❌ Failed to parse CSV:', err);
+          alert('Failed to parse CSV file');
+        });
     });
 
     form.addEventListener('submit', function(event) {
@@ -197,19 +315,19 @@
         body: formData,
         credentials: 'include'
       })
-      .then(response => response.json())
-      .then(data => {
-        if (data.error) {
-          alert(`❌ Error: ${data.error}`);
-        } else {
-          alert(data.message);
-          window.location.href = dashboardUrl;
-        }
-      })
-      .catch(error => {
-        console.error('❌ Submission error:', error);
-        alert("Failed to add match. Please try again.");
-      });
+        .then(response => response.json())
+        .then(data => {
+          if (data.error) {
+            alert(`❌ Error: ${data.error}`);
+          } else {
+            alert(data.message);
+            window.location.href = dashboardUrl;
+          }
+        })
+        .catch(error => {
+          console.error('❌ Submission error:', error);
+          alert("Failed to add match. Please try again.");
+        });
     });
   </script>  
 </body>
